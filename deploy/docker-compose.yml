@@ -1,0 +1,16 @@
+services:
+  bitg-site:
+    image: caddy:2-alpine
+    container_name: bitg-site
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/srv:ro
+    networks:
+      - edge
+
+# dtwin edge Caddy shu tarmoqda: bitg.dtwin.uz -> bitg-site:80
+networks:
+  edge:
+    external: true
+    name: dtwin-prod_default

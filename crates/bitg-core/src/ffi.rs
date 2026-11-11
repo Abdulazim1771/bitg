@@ -12,6 +12,11 @@ pub const BITG_ASCII_TUTUQ: u32 = 4;
 /// Tushib qolgan apostrofni tiklamaslik ("ozbek" o'zgarmay qoladi).
 pub const BITG_NO_RESTORE: u32 = 8;
 
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn options(flags: u32) -> Options {
+    opts(flags)
+}
+
 fn opts(flags: u32) -> Options {
     Options {
         english_guard: flags & BITG_NO_ENGLISH_GUARD == 0,

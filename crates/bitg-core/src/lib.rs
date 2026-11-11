@@ -16,6 +16,8 @@ pub mod lang;
 pub mod latin;
 pub mod reverse;
 pub mod token;
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
 
 pub use reverse::OldStyle;
 
