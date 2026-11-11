@@ -19,11 +19,11 @@ use bitg_core::chars::fold_key;
 use windows::Win32::Foundation::{LPARAM, WPARAM};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     GetAsyncKeyState, GetKeyState, GetKeyboardLayout, GetKeyboardState, INPUT, INPUT_0,
-    INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE,
-    MAPVK_VSC_TO_VK, MapVirtualKeyExW, SendInput, ToUnicodeEx, VIRTUAL_KEY, VK_BACK, VK_CAPITAL,
-    VK_CONTROL, VK_DELETE, VK_DOWN, VK_END, VK_ESCAPE, VK_HOME, VK_LBUTTON, VK_LEFT, VK_LSHIFT,
-    VK_LWIN, VK_MENU, VK_NEXT, VK_PACKET, VK_PRIOR, VK_RBUTTON, VK_RETURN, VK_RIGHT, VK_RSHIFT,
-    VK_RWIN, VK_SHIFT, VK_SPACE, VK_TAB, VK_UP,
+    INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
+    KEYEVENTF_UNICODE, MAPVK_VK_TO_VSC, MAPVK_VSC_TO_VK, MapVirtualKeyExW, SendInput, ToUnicodeEx,
+    VIRTUAL_KEY, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DELETE, VK_DOWN, VK_END, VK_ESCAPE, VK_HOME,
+    VK_LBUTTON, VK_LEFT, VK_LSHIFT, VK_LWIN, VK_MENU, VK_NEXT, VK_PACKET, VK_PRIOR, VK_RBUTTON,
+    VK_RETURN, VK_RIGHT, VK_RSHIFT, VK_RWIN, VK_SHIFT, VK_SPACE, VK_TAB, VK_UP,
 };
 use windows::Win32::UI::TextServices::{
     INSERT_TEXT_AT_SELECTION_FLAGS, ITfCompositionSink, ITfContext, ITfContextComposition,
@@ -49,6 +49,14 @@ const LOOKBACK: i32 = 64;
 const NO_COOKIE: u32 = u32::MAX;
 /// O'zimiz yuboradigan tugmalar belgisi (`dwExtraInfo`).
 const INJECT_TAG: usize = 0xB17B;
+
+/// IMM32 kontekstida ushlangan tugma qanday qayta yuboriladi.
+enum Eat {
+    /// Unicode belgi (VK_PACKET, REMAP_TAG bilan).
+    Char(char),
+    /// Tugmaning o'zi (bo'shliq, Enter, Backspace, strelkalar).
+    Key,
+}
 
 /// Oxirgi o'girish: darhol Backspace bosilsa — qaytariladi.
 struct Undo {
@@ -88,6 +96,9 @@ struct State {
     preserved: Vec<(GUID, TF_PRESERVEDKEY)>,
     keys_dirty: bool,
     undo: Option<Undo>,
+    /// Yuborilgan, lekin hali qaytib kelmagan belgilarimiz (IMM32 kontekstida tartib uchun).
+    queued: u32,
+    queued_at: Option<Instant>,
 }
 
 impl Default for State {
@@ -113,6 +124,8 @@ impl Default for State {
             preserved: Vec::new(),
             keys_dirty: true,
             undo: None,
+            queued: 0,
+            queued_at: None,
         }
     }
 }
@@ -454,7 +467,14 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
             }
             self.sync_preserved();
             let (vk, l) = (w.0 as u16, l.0);
-            if self.mapped(vk, l).is_some() || self.undo_ready(vk) {
+            // O'zimiz qayta yuborgan tugma — dasturga o'tadi.
+            let resent = unsafe { GetMessageExtraInfo() }.0 as usize == INJECT_TAG;
+            if !resent
+                && let Ok(ctx) = pic.ok()
+                && (self.transitory_eat(ctx, vk, l).is_some()
+                    || self.mapped(vk, l).is_some()
+                    || self.undo_ready(vk))
+            {
                 return Ok(true);
             }
             self.observe_key(vk, l);
@@ -471,6 +491,25 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
         let eaten = guard("key down", || {
             let Ok(ctx) = pic.ok() else { return Ok(false) };
             let (vk, l) = (w.0 as u16, l.0);
+            if unsafe { GetMessageExtraInfo() }.0 as usize == INJECT_TAG {
+                return Ok(false);
+            }
+            match self.transitory_eat(ctx, vk, l) {
+                Some(Eat::Char(c)) => {
+                    let mut st = self.state.borrow_mut();
+                    st.undo = None;
+                    st.queued += 1;
+                    st.queued_at = Some(Instant::now());
+                    drop(st);
+                    send_char(c); // kelganda observe_key so'zga qo'shadi va navbatdan chiqaradi
+                    return Ok(true);
+                }
+                Some(Eat::Key) => {
+                    resend_key(vk, l);
+                    return Ok(true);
+                }
+                None => {}
+            }
             if let Some(c) = self.mapped(vk, l) {
                 self.type_char(ctx, c);
                 return Ok(true);
@@ -518,20 +557,67 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
 }
 
 impl TextService_Impl {
-    /// Tugma tartibda belgiga ega bo'lsa — o'sha belgi. Ctrl/Alt/Win bilan — hech qachon (tezkor tugmalar).
-    fn mapped(&self, vk: u16, lparam: isize) -> Option<char> {
+    /// IMM32 (transitory) kontekstda belgimiz dasturga keyinroq yetadi, oddiy tugma esa darhol — tartib
+    /// buzilmasin deb, navbatda belgimiz turganda keyingi tugmalar ham ushlanib, ketma-ket qayta yuboriladi.
+    fn transitory_eat(&self, ctx: &ITfContext, vk: u16, lparam: isize) -> Option<Eat> {
+        let transitory =
+            unsafe { ctx.GetStatus() }.is_ok_and(|s| s.dwStaticFlags & TF_SS_TRANSITORY != 0);
+        if !transitory {
+            return None;
+        }
+        if let Some(c) = self.mapped(vk, lparam) {
+            return Some(Eat::Char(c));
+        }
+        let mut st = self.state.borrow_mut();
+        if st
+            .queued_at
+            .is_none_or(|t| t.elapsed() > Duration::from_secs(1))
+        {
+            st.queued = 0; // yo'qolgan belgi navbatni abadiy band qilmasin
+        }
         let k = VIRTUAL_KEY(vk);
-        if k == VK_PACKET || vk == 0xE8 {
-            return None; // o'zimiz yuborgan belgi
+        if st.queued == 0
+            || k == VK_PACKET
+            || vk == 0xE8
+            || held(VK_CONTROL)
+            || held(VK_MENU)
+            || held(VK_LWIN)
+            || held(VK_RWIN)
+            || matches!(
+                k,
+                VK_SHIFT
+                    | VK_LSHIFT
+                    | VK_RSHIFT
+                    | VK_CONTROL
+                    | VK_MENU
+                    | VK_CAPITAL
+                    | VK_LWIN
+                    | VK_RWIN
+            )
+        {
+            return None;
+        }
+        // Belgi Shift holati bilan hozir aniqlanadi (qayta yuborilganda Shift qo'yib yuborilgan bo'lishi mumkin).
+        // Bo'shliq va boshqaruv tugmalari tugma sifatida qayta yuboriladi — zaxira yo'l ularni so'z chegarasi deb biladi.
+        Some(match key_char(vk, lparam) {
+            Some(c) if !c.is_whitespace() => Eat::Char(c),
+            _ => Eat::Key,
+        })
+    }
+
+    /// Tugma tartibda belgiga ega bo'lsa — o'sha belgi. Ctrl/Alt/Win bilan — hech qachon (tezkor tugmalar).
+    /// Skan-kod VK'dan olinadi: WPF kabi dasturlar TSF'ga lParam'ni to'liq bermaydi.
+    fn mapped(&self, vk: u16, _lparam: isize) -> Option<char> {
+        // Faqat harf, raqam va OEM tugmalari (numpad, strelka, F1... — VK'lari boshqa).
+        if !matches!(vk, 0x30..=0x39 | 0x41..=0x5A | 0xBA..=0xC0 | 0xDB..=0xDF | 0xE2) {
+            return None;
         }
         if held(VK_CONTROL) || held(VK_MENU) || held(VK_LWIN) || held(VK_RWIN) {
             return None;
         }
-        // Kengaytirilgan tugmalar (numpad /, strelkalar) tartibga kirmaydi.
-        if (lparam >> 24) & 1 != 0 {
-            return None;
-        }
-        let scan = ((lparam >> 16) & 0xFF) as u8;
+        let hkl = unsafe { GetKeyboardLayout(0) };
+        let scan =
+            (unsafe { MapVirtualKeyExW(vk as u32, MAPVK_VK_TO_VSC, Some(hkl)) } & 0xFF) as u8;
         let mut st = self.state.borrow_mut();
         if !st.refresh() {
             return None;
@@ -727,6 +813,7 @@ impl TextService_Impl {
                 // Surrogat juftning ikkinchi yarmida belgi 0 — o'tkazib yuboriladi.
                 if let Some(c) = char::from_u32(extra as u32).filter(|&c| c != '\0') {
                     st.typed.push(c);
+                    st.queued = st.queued.saturating_sub(1);
                 }
                 return;
             }
@@ -1180,6 +1267,21 @@ fn send_char(c: char) {
             });
         }
     }
+    unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+}
+
+/// Ushlangan tugmani navbat oxiriga qayta yuboradi (INJECT_TAG bilan — ikkinchi marta ushlanmaydi).
+fn resend_key(vk: u16, lparam: isize) {
+    let scan = ((lparam >> 16) & 0xFF) as u16;
+    let ext = if (lparam >> 24) & 1 != 0 {
+        KEYEVENTF_EXTENDEDKEY
+    } else {
+        KEYBD_EVENT_FLAGS(0)
+    };
+    let inputs = [
+        key_input(VIRTUAL_KEY(vk), scan, ext),
+        key_input(VIRTUAL_KEY(vk), scan, ext | KEYEVENTF_KEYUP),
+    ];
     unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
 }
 
