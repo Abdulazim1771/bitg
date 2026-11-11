@@ -34,8 +34,8 @@ O'zbekiston shaharlari
 
 | To'plam | Natija |
 |---|---|
-| O'zbekcha gaplar (3000 ta, kirill matndan: kirish = eski lotin, kutilgan = yangi lotin, apostrof turlari aralash) | **99.37%** |
-| Apostrofsiz yozilgan o'zbekcha ("ozbek", "togri"; boshqa 3000 gap): tiklangan ö/ğ | **~65%** so'z, noto'g'ri qo'shilgani ~7 ta |
+| O'zbekcha gaplar (3000 ta, kirill matndan: kirish = eski lotin, kutilgan = yangi lotin, apostrof turlari aralash) | **99.33%** |
+| Apostrofsiz yozilgan o'zbekcha ("ozbek", "togri"; boshqa 3000 gap): tiklangan ö/ğ | **71.7%** so'z (3607/5031), noto'g'ri qo'shilgani 10 ta (ko'pi korpus xatosi) |
 | Inglizcha gaplar (sh/ch/apostrof bor, 3000 ta, Leipzig news + web) — o'zgarmasligi kerak | **99.73%** |
 | Tezlik | ~2–4 µs/so'z (release, x64) |
 

@@ -29,6 +29,16 @@ fn missing_apostrophes_are_restored() {
         "Men özbek tilida töğri yozaman, öğil bola köp kitob"
     );
     assert_eq!(c("Ozbekiston, Ozim bilaman"), "Özbekiston, Özim bilaman");
+    // apostrofsiz shakl faqat o'zak orqali "ma'lum" (organ|ib, soz|lar) yoki korpusda xato yozuv (ogzaki)
+    assert_eq!(
+        c("organib qolibman ogzaki sozlar"),
+        "örganib qolibman oğzaki sözlar"
+    );
+    // haqiqiy so'z: oshganlar (oshmoq), ortayotgani (ortmoq) — tegilmaydi
+    assert_eq!(
+        c("narxlar oshganlar, ortayotgani"),
+        "narxlar oşganlar, ortayotgani"
+    );
     // ikkala shakl ham haqiqiy so'z — taxmin qilinmaydi
     assert_eq!(
         c("Uyda qol, oz qoldi, ozod bor"),

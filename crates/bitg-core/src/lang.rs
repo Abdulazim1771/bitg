@@ -234,8 +234,13 @@ const NEVER_RESTORE: &[&str] = &[
 const RESTORE_KNOWN: f32 = 2.5;
 /// Nomzod asl so'zdan shuncha kuchli bo'lsin (log10 shkala: ~30 baravar ko'p uchraydi).
 const RESTORE_MARGIN: f32 = 1.5;
-/// Apostrofsiz shakl ham lug'atda bor: ~300 baravar ko'p uchrashi kerak.
-const RESTORE_MARGIN_BOTH: f32 = 2.0;
+/// Apostrofsiz shakl ham lug'atda bor: ~45 baravar ko'p uchrashi kerak (1.5 da "oshganlar" kabi xatolar chiqdi).
+const RESTORE_MARGIN_BOTH: f32 = 1.65;
+/// Asl shakl korpusda o'zi uchramaydi — faqat o'zak orqali taxmin (organ|ib, soz|lar), nomzod esa o'zi uchraydi
+/// (o'rganib, so'zlar): ~6 baravar ko'p uchrashi kifoya.
+const RESTORE_MARGIN_STEM: f32 = 0.8;
+/// O'zak orqali taxmin qilingan asl shakl shundan kuchli bo'lsa — tegilmaydi.
+const RESTORE_KNOWN_STEM: f32 = 3.2;
 /// Nomzodning eng kichik og'irligi (siyrak so'zlarga taxmin qilmaymiz).
 const RESTORE_MIN: f32 = 2.0;
 /// o/g o'rinlari ko'pi bilan (2^6 = 64 nomzod).
@@ -255,7 +260,14 @@ pub fn restore_apostrophes(word: &str) -> Option<String> {
         return None;
     }
     let w0 = uz_weight(&key).unwrap_or(0.0);
-    if w0 >= RESTORE_KNOWN {
+    let direct0 = uz().contains_key(key.as_str());
+    if w0
+        >= if direct0 {
+            RESTORE_KNOWN
+        } else {
+            RESTORE_KNOWN_STEM
+        }
+    {
         return None;
     }
     let slots: Vec<usize> = (0..kc.len())
@@ -264,7 +276,7 @@ pub fn restore_apostrophes(word: &str) -> Option<String> {
     if slots.is_empty() || slots.len() > RESTORE_MAX_SLOTS {
         return None;
     }
-    let mut best: Option<(f32, u32, u32)> = None; // (og'irlik, -qo'shimchalar soni, mask)
+    let mut best: Option<(f32, u32, u32, bool)> = None; // (og'irlik, -qo'shimchalar soni, mask, o'zi uchraydimi)
     let mut cand = String::with_capacity(key.len() + slots.len());
     for mask in 1u32..(1 << slots.len()) {
         cand.clear();
@@ -280,17 +292,19 @@ pub fn restore_apostrophes(word: &str) -> Option<String> {
         }
         if let Some(w) = uz_weight(&cand) {
             let fewer = u32::MAX - mask.count_ones();
-            if best.is_none_or(|(bw, bf, _)| w > bw || (w == bw && fewer > bf)) {
-                best = Some((w, fewer, mask));
+            if best.is_none_or(|(bw, bf, _, _)| w > bw || (w == bw && fewer > bf)) {
+                best = Some((w, fewer, mask, uz().contains_key(cand.as_str())));
             }
         }
     }
-    let (w, _, mask) = best?;
+    let (w, _, mask, cand_direct) = best?;
     // Ikkala shakl ham haqiqiy so'z (qol/qo'l, otdi/o'tdi, yoq/yo'q) — juda katta farq bo'lsagina.
-    let margin = if w0 > 0.0 {
-        RESTORE_MARGIN_BOTH
-    } else {
+    let margin = if w0 <= 0.0 {
         RESTORE_MARGIN
+    } else if !direct0 && cand_direct {
+        RESTORE_MARGIN_STEM
+    } else {
+        RESTORE_MARGIN_BOTH
     };
     if w < RESTORE_MIN || w < w0 + margin {
         return None;
