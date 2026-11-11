@@ -200,6 +200,34 @@ pub fn read_keymap() -> String {
         .unwrap_or_default()
 }
 
+/// So'zni `exceptions.txt` oxiriga qo'shadi (Backspace bilan o'girish bekor qilinganda).
+/// Bor bo'lsa — qo'shilmaydi.
+pub fn add_exception(word: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    let word = word.trim();
+    if word.is_empty() || word.contains(['\n', '\r']) {
+        return Ok(());
+    }
+    let Some(dir) = dir() else { return Ok(()) };
+    std::fs::create_dir_all(&dir)?;
+    let path = dir.join(EXCEPTIONS_FILE);
+    let old = std::fs::read_to_string(&path).unwrap_or_default();
+    let key = fold_key(word);
+    if old.lines().any(|l| fold_key(l.trim()) == key) {
+        return Ok(());
+    }
+    let mut f = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)?;
+    let sep = if old.is_empty() || old.ends_with('\n') {
+        ""
+    } else {
+        "\n"
+    };
+    writeln!(f, "{sep}{word}")
+}
+
 /// Ikkala fayl matni (yo'q bo'lsa — bo'sh).
 pub fn read_raw() -> (String, String) {
     let Some(dir) = dir() else {

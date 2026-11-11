@@ -1,0 +1,78 @@
+name: e2e
+
+# Haqiqiy Windows'da IME sinovi: MSI o'rnatiladi, tugmalar SendInput bilan bosiladi (WPF, Win32 EDIT, 32-bit).
+# Actions budjetini tejash uchun faqat qo'lda (Actions → e2e → Run workflow) va versiya tegida.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+          targets: i686-pc-windows-msvc
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: MSI
+        shell: pwsh
+        run: ./installer/build.ps1
+
+      - name: O'rnatish
+        shell: pwsh
+        run: |
+          $msi = (Get-ChildItem dist/*.msi | Select-Object -First 1).FullName
+          $p = Start-Process msiexec.exe -Wait -PassThru -ArgumentList @(
+            '/i', "`"$msi`"", '/qn', '/l*v', "`"$env:RUNNER_TEMP\msi.log`"", 'AUTOSTART=0', 'ADDKEYBOARD=0')
+          if ($p.ExitCode) { throw "msiexec $($p.ExitCode)" }
+          $clsid = '{E37D4F70-F82A-435E-AF8B-82E264391062}'
+          reg query "HKLM\SOFTWARE\Classes\CLSID\$clsid\InprocServer32" /ve
+          reg query "HKLM\SOFTWARE\WOW6432Node\Classes\CLSID\$clsid\InprocServer32" /ve
+
+      - name: Klaviaturani foydalanuvchiga qo'shish
+        shell: powershell
+        run: |
+          $tip = '0443:{E37D4F70-F82A-435E-AF8B-82E264391062}{BED48FC8-8690-4712-BBE0-1FD3284CE7B7}'
+          $l = Get-WinUserLanguageList
+          if (-not ($l | Where-Object LanguageTag -like 'uz-Latn*')) { $l.Add('uz-Latn') }
+          $uz = $l | Where-Object LanguageTag -like 'uz-Latn*' | Select-Object -First 1
+          $uz.InputMethodTips.Clear()
+          $uz.InputMethodTips.Add($tip)
+          Set-WinUserLanguageList $l -Force
+          Get-WinUserLanguageList | Format-List LanguageTag, InputMethodTips
+
+      - name: WPF (64-bit)
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/e2e/tsf-e2e.ps1 -Ui wpf -Out "$env:RUNNER_TEMP\e2e-wpf-x64.txt"
+
+      - name: Win32 EDIT (64-bit)
+        if: ${{ !cancelled() }}
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/e2e/tsf-e2e.ps1 -Ui winforms -Out "$env:RUNNER_TEMP\e2e-edit-x64.txt"
+
+      - name: WPF (32-bit)
+        if: ${{ !cancelled() }}
+        shell: powershell
+        run: |
+          & "$env:WINDIR\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass `
+            -File tools/e2e/tsf-e2e.ps1 -Ui wpf -Out "$env:RUNNER_TEMP\e2e-wpf-x86.txt"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      - name: Loglar
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-logs
+          path: |
+            ${{ runner.temp }}/e2e-*.txt
+            ${{ runner.temp }}/msi.log
+            ~/AppData/Local/bitg/tsf.log
+          if-no-files-found: warn

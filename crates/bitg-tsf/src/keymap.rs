@@ -64,13 +64,13 @@ pub const KEYS: &[(&str, u8)] = &[
 
 pub const LEVELS: usize = 4;
 
-/// Tray ilovasi klaviatura tartibi bilan yozgan belgilar: `dwExtraInfo = REMAP_TAG << 32 | belgi`
+/// Tahrir sessiyasi ishlamaganda IME belgini Unicode tugma sifatida yuboradi: `dwExtraInfo = REMAP_TAG << 32 | belgi`
 /// (surrogat juftning ikkinchi yarmida belgi 0). IME ularni so'zning davomi deb hisoblaydi.
 pub const REMAP_TAG: u64 = 0xB17C;
 const SLOTS: usize = 0x60;
 
 /// Tayyor tartiblar.
-pub const PRESETS: &[&str] = &["tilmoch", "turkish", "altgr"];
+pub const PRESETS: &[&str] = &["tilmoch", "turkish", "altgr", "kirill"];
 pub const DEFAULT_LAYOUT: &str = "tilmoch";
 pub const CUSTOM: &str = "custom";
 
@@ -254,8 +254,90 @@ pub fn preset(name: &str) -> Option<Keymap> {
             (",", ["-", "-", "«", "“"]),
             (".", ["-", "-", "»", "”"]),
         ]),
+        // Windows "O'zbek (kirill)" tartibi: harf tugmalarida kirill, AltGr'da US belgilari qoladi.
+        // Yozilgan kirill so'z oxirida yangi lotinga o'giriladi (avto o'chiq bo'lsa — kirill qoladi).
+        CYRILLIC => cyrillic(),
         _ => return None,
     })
+}
+
+pub const CYRILLIC: &str = "kirill";
+
+fn cyrillic() -> Keymap {
+    const LETTERS: &[(&str, char)] = &[
+        ("`", 'ё'),
+        ("-", 'ғ'),
+        ("=", 'ҳ'),
+        ("q", 'й'),
+        ("w", 'ц'),
+        ("e", 'у'),
+        ("r", 'к'),
+        ("t", 'е'),
+        ("y", 'н'),
+        ("u", 'г'),
+        ("i", 'ш'),
+        ("o", 'ў'),
+        ("p", 'з'),
+        ("[", 'х'),
+        ("]", 'ъ'),
+        ("a", 'ф'),
+        ("s", 'қ'),
+        ("d", 'в'),
+        ("f", 'а'),
+        ("g", 'п'),
+        ("h", 'р'),
+        ("j", 'о'),
+        ("k", 'л'),
+        ("l", 'д'),
+        (";", 'ж'),
+        ("'", 'э'),
+        ("z", 'я'),
+        ("x", 'ч'),
+        ("c", 'с'),
+        ("v", 'м'),
+        ("b", 'и'),
+        ("n", 'т'),
+        ("m", 'ь'),
+        (",", 'б'),
+        (".", 'ю'),
+    ];
+    // Raqam qatori Shift bilan — ruscha tartibdagidek.
+    const SHIFTED: &[(&str, char)] = &[
+        ("2", '"'),
+        ("3", '№'),
+        ("4", ';'),
+        ("6", ':'),
+        ("7", '?'),
+        ("/", ','),
+    ];
+    const US: &[(&str, char, char)] = &[
+        ("`", '`', '~'),
+        ("-", '-', '_'),
+        ("=", '=', '+'),
+        ("[", '[', '{'),
+        ("]", ']', '}'),
+        (";", ';', ':'),
+        ("'", '\'', '"'),
+        (",", ',', '<'),
+        (".", '.', '>'),
+        ("/", '/', '?'),
+    ];
+    let mut m = Keymap::default();
+    for &(label, lo) in LETTERS {
+        let scan = scan_of(label).expect("preset key");
+        m.set(scan, 0, Some(lo));
+        m.set(scan, 1, lo.to_uppercase().next());
+    }
+    for &(label, c) in SHIFTED {
+        m.set(scan_of(label).expect("preset key"), 1, Some(c));
+    }
+    m.set(scan_of("/").expect("preset key"), 0, Some('.'));
+    for &(label, lo, up) in US {
+        let scan = scan_of(label).expect("preset key");
+        m.set(scan, 2, Some(lo));
+        m.set(scan, 3, Some(up));
+    }
+    m
 }
 
 #[cfg(test)]
@@ -338,6 +420,21 @@ mod tests {
         assert_eq!(m.get(0x1B, 0), None);
         assert_eq!(m.get(0x27, 1), Some('Ş'));
         assert_eq!(m.get(QUOTE, 0), None);
+    }
+
+    #[test]
+    fn cyrillic_preset_follows_windows_uzbek_layout() {
+        let m = preset(CYRILLIC).unwrap();
+        let k = |l: &str| scan_of(l).unwrap();
+        assert_eq!(m.lookup(k("o"), false, false, false), Some('ў'));
+        assert_eq!(m.lookup(k("s"), false, false, false), Some('қ'));
+        assert_eq!(m.lookup(k("-"), true, false, false), Some('Ғ'));
+        assert_eq!(m.lookup(k("="), false, true, false), Some('Ҳ'));
+        assert_eq!(m.lookup(k("3"), true, false, false), Some('№'));
+        assert_eq!(m.lookup(k("3"), false, false, false), None);
+        assert_eq!(m.lookup(k("/"), true, false, false), Some(','));
+        assert_eq!(m.lookup(LBR, false, false, true), Some('['));
+        assert_eq!(m.lookup(LBR, false, false, false), Some('х'));
     }
 
     #[test]

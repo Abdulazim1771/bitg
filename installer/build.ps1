@@ -37,9 +37,14 @@ try {
         if (-not $env:RUSTUP_TOOLCHAIN) { $env:RUSTUP_TOOLCHAIN = 'stable-x86_64-pc-windows-msvc' }
         cargo build --release --locked -p bitg-tsf -p bitg-settings -p bitg-cli
         if ($LASTEXITCODE) { throw 'cargo build' }
+        # 32-bit dasturlar uchun IME DLL (rustup target add i686-pc-windows-msvc).
+        cargo build --release --locked -p bitg-tsf --target i686-pc-windows-msvc
+        if ($LASTEXITCODE) { throw 'cargo build (i686)' }
     }
     $bin = Join-Path $root 'target\release'
-    $binaries = 'bitg_tsf.dll', 'bitg-settings.exe', 'bitg.exe' | ForEach-Object { Join-Path $bin $_ }
+    $bin32 = Join-Path $root 'target\i686-pc-windows-msvc\release'
+    $binaries = @('bitg_tsf.dll', 'bitg-settings.exe', 'bitg.exe' | ForEach-Object { Join-Path $bin $_ }) +
+        @(Join-Path $bin32 'bitg_tsf.dll')
     foreach ($b in $binaries) {
         if (Select-String -Path $b -Pattern 'VCRUNTIME140' -SimpleMatch -Quiet) {
             throw "$b VC++ runtime'ga bog'liq (.cargo/config.toml crt-static ishlamadi)"
@@ -70,7 +75,7 @@ try {
 
         # --- MSI ---
         dotnet build installer/bitg.wixproj -c Release -t:Rebuild -nologo -v:minimal `
-            "-p:Version=$Version" "-p:BinDir=$bin\"
+            "-p:Version=$Version" "-p:BinDir=$bin\" "-p:BinDir32=$bin32\"
         if ($LASTEXITCODE) { throw 'WiX build' }
         $dist = Join-Path $root 'dist'
         New-Item -ItemType Directory -Force $dist | Out-Null

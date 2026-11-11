@@ -216,6 +216,21 @@ fn convert_token(
         *quote_open = false;
     }
 
+    // Chiziqchali so'z qism-qism: C-uchli → C-uçli, MR-shartli → MR-şartli, CH-III o'zgarmaydi.
+    if core.contains('-')
+        && !core.starts_with('-')
+        && !core.ends_with('-')
+        && core
+            .split('-')
+            .any(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_uppercase()))
+    {
+        return convert_compound(lead, core, trail, opts, ctx);
+    }
+    // Unlisiz katta harfli qisqartma (TSH, PTCH, CH) va o'zbekchada yo'q harfli so'z (Pöschl, Müller).
+    if is_acronym(core) || has_foreign_letters(core) {
+        return (tok.to_string(), Reason::Unchanged);
+    }
+
     // Tushib qolgan apostrof (ozbek → o'zbek). Inglizcha gap ichida emas; istisno so'zlarga tegilmaydi.
     let restored;
     if opts.restore_apostrophes
@@ -245,10 +260,12 @@ fn convert_token(
     if opts.is_exception(core) {
         return (tok.to_string(), Reason::Exception);
     }
-    if opts.english_guard && english_blocks(core, own, ctx) {
+    if opts.english_guard
+        && (english_blocks(core, own, ctx) || english_with_suffix(core) || german_sch(core))
+    {
         return (tok.to_string(), Reason::English);
     }
-    let new_core = if lang::is_sh_split(core) {
+    let new_core = if lang::is_sh_split(core) || is_dis_h(core) {
         latin::to_new_split(core, opts.tutuq)
     } else {
         latin::to_new(core, opts.tutuq)
@@ -261,6 +278,96 @@ fn convert_token(
     out.push_str(&new_core);
     out.push_str(trail);
     (out, Reason::Converted)
+}
+
+/// Chiziqcha bilan ajralgan bo'laklar alohida qaror oladi; natija — eng kuchli sabab.
+fn convert_compound(
+    lead: &str,
+    core: &str,
+    trail: &str,
+    opts: &Options,
+    ctx: f32,
+) -> (String, Reason) {
+    let mut out = String::with_capacity(core.len() + lead.len() + trail.len() + 4);
+    out.push_str(lead);
+    let mut reason = Reason::Unchanged;
+    for (i, part) in core.split('-').enumerate() {
+        if i > 0 {
+            out.push('-');
+        }
+        let own = if opts.english_guard {
+            lang::evidence(part)
+        } else {
+            0.0
+        };
+        // Qisqartmali birikma (C-uchli) atrofidagi lotin harflar gapni "inglizcha" qilib ko'rsatadi — e'tiborsiz.
+        let (conv, r) = convert_token(part, opts, own, ctx.max(0.0), &mut false);
+        out.push_str(&conv);
+        reason = match (reason, r) {
+            (_, Reason::Converted) | (Reason::Converted, _) => Reason::Converted,
+            (Reason::Unchanged, r) => r,
+            (r, _) => r,
+        };
+    }
+    out.push_str(trail);
+    (out, reason)
+}
+
+/// Lotincha qisqartma: unlisiz, SH/CH bilan tugaydi (TSH, PTCH) yoki faqat "CH"/"SH".
+/// O'zbekcha qisqartmalar (MCHJ, KXSHT, SHHT, AQSH) o'giriladi.
+fn is_acronym(core: &str) -> bool {
+    core.chars().count() >= 2
+        && core.chars().all(|c| c.is_ascii_uppercase())
+        && !core
+            .chars()
+            .any(|c| matches!(c, 'A' | 'E' | 'I' | 'O' | 'U'))
+        && (core.len() == 2 || core.ends_with("SH") || core.ends_with("CH"))
+}
+
+/// O'zbek alifbosida yo'q harf (Müller, Señor) yoki ö bilan nemischa "sch" (Pöschl, Tröltsch).
+/// ö ning o'zi yangi alifbo harfi: "köcha" (ö tugmadan yozilgan) o'giriladi.
+fn has_foreign_letters(core: &str) -> bool {
+    // ë yo'q: eski o'zbek lotin matnlarida "yo" o'rnida keladi (ëzuvchi, ësh).
+    const FOREIGN: &str = "äüßéèêáàâïîñøåæœúùûíìóòôãõýÄÜÉÈÊÁÀÂÏÎÑØÅÆŒÚÙÛÍÌÓÒÔÃÕÝ";
+    if core.chars().any(|c| FOREIGN.contains(c)) {
+        return true;
+    }
+    core.contains(['ö', 'Ö']) && core.to_lowercase().contains("sch")
+}
+
+/// Nemischa "sch" (Fischer, Schmidt). O'zbekchada s+ch faqat qo'shimchada (asoschi, bokschi) — ular lug'atda.
+fn german_sch(core: &str) -> bool {
+    let l = core.to_lowercase();
+    l.contains("sch") && (l.starts_with("sch") || !lang::known(core).0)
+}
+
+/// dis + gormon (dishormonal, dishidroz, disharmoniya): s va h alohida.
+fn is_dis_h(core: &str) -> bool {
+    let l = core.to_lowercase();
+    ["dishorm", "dishidr", "disharm"]
+        .iter()
+        .any(|p| l.starts_with(p))
+}
+
+/// O'zbek qo'shimchasi qo'shilgan inglizcha nom: Chromeda, Shellga, dashboardlar.
+const UZ_SUFFIXES: &[&str] = &[
+    "larning", "larni", "larga", "larda", "lardan", "dagi", "ning", "dan", "lar", "dir", "da",
+    "ga", "ka", "ni",
+];
+
+fn english_with_suffix(core: &str) -> bool {
+    // Lug'atdagi kichik harfli so'z (matchda) — o'zbekcha; bosh harfli nom (Shellga) — tekshiriladi.
+    if lang::known(core).0 && !core.starts_with(|c: char| c.is_uppercase()) {
+        return false;
+    }
+    let lower = core.to_lowercase();
+    UZ_SUFFIXES.iter().any(|suf| {
+        lower.strip_suffix(suf).is_some_and(|stem| {
+            stem.chars().count() >= 4
+                && latin::has_convertible(stem)
+                && lang::evidence(stem) <= -2.0
+        })
+    })
 }
 
 /// `o'`, `G'` va h.k.: yolg'iz o/g harfi + apostrof.

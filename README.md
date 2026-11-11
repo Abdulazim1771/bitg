@@ -170,12 +170,18 @@ yoqilsa, bitg klaviaturasi tanlangan oynada tugma darhol yangi harfni yozadi:
 | Tilmoch (standart, [tilmoch.ai](https://tilmoch.ai/ru/terilmalar) asosida) | `[` ö, `]` ğ, `;` ş, `'` ç, `` ` `` ’; `\` → `;` `:`; qavslar va `;` `'` — AltGr bilan; `№` — AltGr+Shift+3 |
 | Turkcha Q | `[` ğ, `]` ü, `;` ş, `'` i, `,` ö, `.` ç, `i` → ı; vergul `\`, nuqta `/` da |
 | Faqat AltGr | hech narsa ko'chmaydi: o'ng Alt + O G S C → ö ğ ş ç |
+| Kirill | Windows «O'zbek (kirill)» tartibi (`o` ў, `s` қ, `-` ғ, `=` ҳ); avto o'girish yoqiq bo'lsa kirillcha so'z probeldan keyin yangi lotinga o'tadi, o'chiq bo'lsa kirill qoladi |
 | Maxsus | oynada tugmani bosib, 4 qatlamning (oddiy, Shift, AltGr, AltGr+Shift) istalganiga istalgan belgi |
 
 Maxsus tartib `%APPDATA%\bitg\keymap.txt` da (har qator: `tugma oddiy Shift AltGr AltGr+Shift`, `-` — o'zgarmaydi,
-`U+XXXX` — belgi kodi) va qo'lda tahrirlansa ham 2 soniyada qabul qilinadi. Tartibni tray ilovasi (past darajali
-klaviatura hook'i, faqat rejim yoqilganda o'rnatiladi) bajaradi: Ctrl/Alt/Win bilan tezkor tugmalar inglizcha joyida,
-o'chirilgan dasturlar (terminallar) va administrator oynalarida tugmalar o'zgarmaydi.
+`U+XXXX` — belgi kodi) va qo'lda tahrirlansa ham bir soniyada qabul qilinadi. Tartibni IME'ning o'zi bajaradi
+(tray ilovasi shart emas, administrator oynalarida ham ishlaydi): tugma TSF'da ushlanadi va belgi tahrir
+sessiyasida yoziladi (eski IMM32 dasturlarida qisqa kompozitsiya bilan), AltGr qatlamlari — o'ng Alt uchun
+"preserved key". Ctrl/Alt/Win bilan tezkor tugmalar inglizcha joyida, o'chirilgan dasturlarda (terminallar)
+tugmalar o'zgarmaydi.
+
+**Backspace bilan bekor qilish:** so'z o'girilgandan keyin darhol Backspace bosilsa, asl so'z qaytadi va
+`exceptions.txt` ga qo'shiladi — keyingi safar o'girilmaydi (Sozlamalar → «Backspace bilan bekor qilish»).
 
 ## Lug'at
 

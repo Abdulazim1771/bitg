@@ -9,7 +9,8 @@
     <Platform>x64</Platform>
     <Version Condition="'$(Version)' == ''">0.0.0</Version>
     <BinDir Condition="'$(BinDir)' == ''">$(MSBuildThisFileDirectory)..\target\release\</BinDir>
-    <DefineConstants>Version=$(Version);BinDir=$(BinDir);RepoDir=$(MSBuildThisFileDirectory)..\</DefineConstants>
+    <BinDir32 Condition="'$(BinDir32)' == ''">$(MSBuildThisFileDirectory)..\target\i686-pc-windows-msvc\release\</BinDir32>
+    <DefineConstants>Version=$(Version);BinDir=$(BinDir);BinDir32=$(BinDir32);RepoDir=$(MSBuildThisFileDirectory)..\</DefineConstants>
     <Cultures>en-US</Cultures>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- ICE61: AllowSameVersionUpgrades — bir xil versiyani qayta o'rnatish (tuzatilgan build) ataylab ruxsat. -->

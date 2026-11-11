@@ -173,6 +173,46 @@ fn cyrillic() {
 }
 
 #[test]
+fn acronyms_without_vowels_are_kept() {
+    assert_eq!(c("TSH va PTCH bo'yicha"), "TSH va PTCH böyiça");
+    assert_eq!(c("CH-III bosqich"), "CH-III bosqiç");
+    // O'zbekcha qisqartma — o'giriladi.
+    assert_eq!(c("AQSH bilan"), "AQŞ bilan");
+    assert_eq!(c("MCHJ va KXSHT"), "MÇJ va KXŞT");
+}
+
+#[test]
+fn hyphen_compounds_are_split() {
+    assert_eq!(c("C-uchli va MR-shartli"), "C-uçli va MR-şartli");
+    assert_eq!(c("shahar-qishloq"), "şahar-qişloq");
+    assert_eq!(c("o'n-o'n besh"), "ön-ön beş");
+    assert_eq!(c("2-chi sinf"), "2-çi sinf");
+}
+
+#[test]
+fn foreign_letters_and_german_sch_are_kept() {
+    assert_eq!(c("Pöschl va Tröltsch"), "Pöschl va Tröltsch");
+    assert_eq!(c("Müller shahri"), "Müller şahri");
+    assert_eq!(c("Fischer va Schmidt"), "Fischer va Schmidt");
+    // O'zbekcha s+ch: o'giriladi.
+    assert_eq!(c("asoschi bokschi"), "asosçi boksçi");
+    // ö tugmadan yozilgan bo'lsa ham qolgani o'giriladi.
+    assert_eq!(c("köcha"), "köça");
+}
+
+#[test]
+fn dis_h_is_split() {
+    assert_eq!(c("dishormonogenetik holat"), "dishormonogenetik holat");
+}
+
+#[test]
+fn english_name_with_uzbek_suffix_is_kept() {
+    assert_eq!(c("Chromeda ochildi"), "Chromeda oçildi");
+    assert_eq!(c("Shellga yozdim"), "Shellga yozdim");
+    assert_eq!(c("Toshkentda boshda"), "Toşkentda boşda");
+}
+
+#[test]
 fn already_converted_text_is_stable() {
     let once = c("O'zbekiston shaharlari, choy va ma'no");
     assert_eq!(c(&once), once);

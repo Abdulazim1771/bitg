@@ -1,37 +1,45 @@
-//! TSF xizmati. Tugmalarni HECH QACHON ushlab qolmaydi (OnTestKeyDown doim FALSE — tugma dasturga boradi).
+//! TSF xizmati. Tugmani faqat ikki holatda ushlab qoladi (qolgani doim dasturga boradi):
+//! - klaviatura tartibi yoqilgan va tugmaga belgi qo'yilgan — belgi tahrir sessiyasida yoziladi
+//!   (IMM32 dasturlarida qisqa kompozitsiya bilan); AltGr qatlamlari — "preserved key" (o'ng Alt);
+//! - o'girishdan keyin darhol Backspace — asl so'z qaytariladi va istisnolarga qo'shiladi.
 //!
 //! 1) Asosiy yo'l: fokusdagi matnning o'zgarishini kuzatadi (ITfTextEditSink). So'zdan keyin probel/Enter/Tab
 //!    yozilgani ko'rinsa (kursor oldidagi matn = oldingi matn + bo'shliq), so'zni asinxron tahrirda almashtiradi.
 //! 2) Zaxira yo'l (dastur matnni TSF'ga bermasa — Telegram Desktop): bosilgan harflardan so'z yig'iladi
 //!    (`typed`), probeldan keyin Backspace + Unicode kiritish (SendInput) bilan almashtiriladi.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::rc::Rc;
 
 use std::time::{Duration, Instant};
 
 use bitg_core::Session;
+use bitg_core::chars::fold_key;
 use windows::Win32::Foundation::{LPARAM, WPARAM};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     GetAsyncKeyState, GetKeyState, GetKeyboardLayout, GetKeyboardState, INPUT, INPUT_0,
-    INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, SendInput,
-    ToUnicodeEx, VIRTUAL_KEY, VK_BACK, VK_CONTROL, VK_DELETE, VK_DOWN, VK_END, VK_ESCAPE, VK_HOME,
-    VK_LBUTTON, VK_LEFT, VK_LWIN, VK_MENU, VK_NEXT, VK_PACKET, VK_PRIOR, VK_RBUTTON, VK_RETURN,
-    VK_RIGHT, VK_RWIN, VK_SPACE, VK_TAB, VK_UP,
+    INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE,
+    MAPVK_VSC_TO_VK, MapVirtualKeyExW, SendInput, ToUnicodeEx, VIRTUAL_KEY, VK_BACK, VK_CAPITAL,
+    VK_CONTROL, VK_DELETE, VK_DOWN, VK_END, VK_ESCAPE, VK_HOME, VK_LBUTTON, VK_LEFT, VK_LSHIFT,
+    VK_LWIN, VK_MENU, VK_NEXT, VK_PACKET, VK_PRIOR, VK_RBUTTON, VK_RETURN, VK_RIGHT, VK_RSHIFT,
+    VK_RWIN, VK_SHIFT, VK_SPACE, VK_TAB, VK_UP,
 };
 use windows::Win32::UI::TextServices::{
-    ITfContext, ITfDocumentMgr, ITfEditRecord, ITfEditSession, ITfEditSession_Impl,
+    INSERT_TEXT_AT_SELECTION_FLAGS, ITfCompositionSink, ITfContext, ITfContextComposition,
+    ITfDocumentMgr, ITfEditRecord, ITfEditSession, ITfEditSession_Impl, ITfInsertAtSelection,
     ITfKeyEventSink, ITfKeyEventSink_Impl, ITfKeystrokeMgr, ITfRange, ITfSource, ITfTextEditSink,
     ITfTextEditSink_Impl, ITfTextInputProcessor, ITfTextInputProcessor_Impl,
     ITfTextInputProcessorEx, ITfTextInputProcessorEx_Impl, ITfThreadMgr, ITfThreadMgrEventSink,
-    ITfThreadMgrEventSink_Impl, TF_AE_END, TF_ANCHOR_END, TF_DEFAULT_SELECTION, TF_ES_ASYNC,
-    TF_ES_READWRITE, TF_SELECTION, TF_SELECTIONSTYLE,
+    ITfThreadMgrEventSink_Impl, TF_AE_END, TF_ANCHOR_END, TF_DEFAULT_SELECTION, TF_E_SYNCHRONOUS,
+    TF_ES_ASYNC, TF_ES_ASYNCDONTCARE, TF_ES_READWRITE, TF_ES_SYNC, TF_IAS_QUERYONLY, TF_MOD_RALT,
+    TF_MOD_SHIFT, TF_PRESERVEDKEY, TF_SELECTION, TF_SELECTIONSTYLE, TF_SS_TRANSITORY, TS_S_ASYNC,
 };
 use windows::Win32::UI::WindowsAndMessaging::GetMessageExtraInfo;
 use windows_core::{BOOL, GUID, IUnknown, IUnknownImpl, Interface, Ref, Result, implement};
 
 use crate::config::{self, Config};
+use crate::keymap::{self, Keymap, REMAP_TAG};
 use crate::log;
 use crate::plan;
 use crate::typed::Typed;
@@ -39,7 +47,16 @@ use crate::typed::Typed;
 /// Kursor oldidan o'qiladigan eng ko'p UTF-16 birlik.
 const LOOKBACK: i32 = 64;
 const NO_COOKIE: u32 = u32::MAX;
-use crate::keymap::REMAP_TAG;
+/// O'zimiz yuboradigan tugmalar belgisi (`dwExtraInfo`).
+const INJECT_TAG: usize = 0xB17B;
+
+/// Oxirgi o'girish: darhol Backspace bosilsa — qaytariladi.
+struct Undo {
+    original: String,
+    converted: String,
+    /// Zaxira yo'lda (SendInput bilan) o'girilgan.
+    blind: bool,
+}
 
 struct State {
     thread_mgr: Option<ITfThreadMgr>,
@@ -65,6 +82,12 @@ struct State {
     /// O'zimiz yuborgan tugmalar (Backspace / VK_PACKET) — ularni kuzatmaymiz.
     injecting: u32,
     inject_until: Option<Instant>,
+    /// Faol klaviatura tartibi (yoqilgan va bo'sh emas).
+    keymap: Option<Keymap>,
+    /// Ro'yxatga olingan AltGr tugmalari va ular tartibga mos kelishi.
+    preserved: Vec<(GUID, TF_PRESERVEDKEY)>,
+    keys_dirty: bool,
+    undo: Option<Undo>,
 }
 
 impl Default for State {
@@ -86,6 +109,10 @@ impl Default for State {
             typed: Typed::default(),
             injecting: 0,
             inject_until: None,
+            keymap: None,
+            preserved: Vec::new(),
+            keys_dirty: true,
+            undo: None,
         }
     }
 }
@@ -114,7 +141,20 @@ const CONFIG_CHECK: Duration = Duration::from_secs(1);
 
 impl State {
     fn apply(&mut self, cfg: Config, stamp: config::Stamp) {
-        self.active = cfg.enabled && !cfg.app_disabled(log::process());
+        let active = cfg.enabled && !cfg.app_disabled(log::process());
+        if active != self.active {
+            self.keys_dirty = true;
+        }
+        self.active = active;
+        let km = if cfg.keymap {
+            Some(cfg.resolve_keymap(&config::read_keymap())).filter(|m| !m.is_empty())
+        } else {
+            None
+        };
+        if km != self.keymap {
+            self.keymap = km;
+            self.keys_dirty = true;
+        }
         self.cfg = cfg;
         self.stamp = stamp;
         self.checked = Some(Instant::now());
@@ -165,19 +205,33 @@ impl ITfTextInputProcessor_Impl for TextService_Impl {
     fn Deactivate(&self) -> Result<()> {
         guard("deactivate", || {
             self.unwatch();
-            let mut st = self.state.borrow_mut();
-            if let Some(tm) = st.thread_mgr.take() {
-                if st.tm_cookie != NO_COOKIE {
-                    if let Ok(src) = tm.cast::<ITfSource>() {
-                        let _ = unsafe { src.UnadviseSink(st.tm_cookie) };
-                    }
-                    st.tm_cookie = NO_COOKIE;
+            // Holat avval olinadi: TSF unadvise paytida bizni (OnSetFocus) chaqirishi mumkin — borrow ushlanmasin.
+            let (tm, cookie, preserved, key_sink, tid) = {
+                let mut st = self.state.borrow_mut();
+                let r = (
+                    st.thread_mgr.take(),
+                    std::mem::replace(&mut st.tm_cookie, NO_COOKIE),
+                    std::mem::take(&mut st.preserved),
+                    std::mem::replace(&mut st.key_sink, false),
+                    st.tid,
+                );
+                st.keys_dirty = true;
+                st.undo = None;
+                r
+            };
+            if let Some(tm) = tm {
+                if cookie != NO_COOKIE
+                    && let Ok(src) = tm.cast::<ITfSource>()
+                {
+                    let _ = unsafe { src.UnadviseSink(cookie) };
                 }
-                if st.key_sink {
-                    if let Ok(ks) = tm.cast::<ITfKeystrokeMgr>() {
-                        let _ = unsafe { ks.UnadviseKeyEventSink(st.tid) };
+                if let Ok(ks) = tm.cast::<ITfKeystrokeMgr>() {
+                    for (g, k) in &preserved {
+                        let _ = unsafe { ks.UnpreserveKey(g, k) };
                     }
-                    st.key_sink = false;
+                    if key_sink {
+                        let _ = unsafe { ks.UnadviseKeyEventSink(tid) };
+                    }
                 }
             }
             log::write("deactivate");
@@ -210,6 +264,7 @@ impl ITfTextInputProcessorEx_Impl for TextService_Impl {
             Ok(()) => self.state.borrow_mut().key_sink = true,
             Err(e) => log::write(&format!("advise key sink failed hr={:#x}", e.code().0)),
         }
+        self.sync_preserved();
         // Hozir fokusdagi hujjat.
         if let Ok(dim) = unsafe { tm.GetFocus() } {
             self.watch(Some(&dim));
@@ -293,6 +348,7 @@ impl TextService_Impl {
             st.blind_logged = false;
             st.blind = true;
             st.typed.boundary();
+            st.undo = None;
         }
         let Some(dim) = dim else { return };
         let Ok(ctx) = (unsafe { dim.GetTop() }) else {
@@ -367,6 +423,7 @@ impl TextService_Impl {
             ctx: ctx.clone(),
             word: t.word,
             insert: edit.insert,
+            state: self.state.clone(),
         }
         .into();
         let tid = self.state.borrow().tid;
@@ -379,38 +436,236 @@ impl TextService_Impl {
 
 impl ITfKeyEventSink_Impl for TextService_Impl {
     fn OnSetFocus(&self, _foreground: BOOL) -> Result<()> {
-        self.state.borrow_mut().typed.boundary();
+        if let Ok(mut st) = self.state.try_borrow_mut() {
+            st.typed.boundary();
+            st.undo = None;
+        }
         Ok(())
     }
 
-    /// Faqat kuzatadi. Doim FALSE: TRUE qaytarilsa TSF tugmani dasturga bermay qo'yadi (qotib qolish).
+    /// TRUE faqat ushlanadigan tugmada (tartib belgisi yoki o'girishni bekor qiluvchi Backspace) —
+    /// keyin TSF `OnKeyDown`ni chaqiradi. Qolgan hamma tugma kuzatiladi va dasturga boradi.
     fn OnTestKeyDown(&self, pic: Ref<'_, ITfContext>, w: WPARAM, l: LPARAM) -> Result<BOOL> {
-        let _ = guard("key", || {
+        let eat = guard("key", || {
             if pic.is_null() {
                 // Matn maydoni emas (Explorer ro'yxati, o'yin): Backspace bu yerda boshqa ish qiladi — tegmaymiz.
                 self.state.borrow_mut().typed.lost();
-            } else {
-                self.observe_key(w.0 as u16, l.0);
+                return Ok(false);
             }
-            Ok(())
-        });
-        Ok(false.into())
+            self.sync_preserved();
+            let (vk, l) = (w.0 as u16, l.0);
+            if self.mapped(vk, l).is_some() || self.undo_ready(vk) {
+                return Ok(true);
+            }
+            self.observe_key(vk, l);
+            Ok(false)
+        })?;
+        Ok(eat.into())
     }
 
     fn OnTestKeyUp(&self, _pic: Ref<'_, ITfContext>, _w: WPARAM, _l: LPARAM) -> Result<BOOL> {
         Ok(false.into())
     }
 
-    fn OnKeyDown(&self, _pic: Ref<'_, ITfContext>, _w: WPARAM, _l: LPARAM) -> Result<BOOL> {
-        Ok(false.into())
+    fn OnKeyDown(&self, pic: Ref<'_, ITfContext>, w: WPARAM, l: LPARAM) -> Result<BOOL> {
+        let eaten = guard("key down", || {
+            let Ok(ctx) = pic.ok() else { return Ok(false) };
+            let (vk, l) = (w.0 as u16, l.0);
+            if let Some(c) = self.mapped(vk, l) {
+                self.type_char(ctx, c);
+                return Ok(true);
+            }
+            if self.undo_ready(vk) {
+                self.restore(ctx);
+                return Ok(true);
+            }
+            Ok(false)
+        })?;
+        Ok(eaten.into())
     }
 
     fn OnKeyUp(&self, _pic: Ref<'_, ITfContext>, _w: WPARAM, _l: LPARAM) -> Result<BOOL> {
         Ok(false.into())
     }
 
-    fn OnPreservedKey(&self, _pic: Ref<'_, ITfContext>, _guid: *const GUID) -> Result<BOOL> {
-        Ok(false.into())
+    /// O'ng Alt + tugma (tartibning AltGr qatlami).
+    fn OnPreservedKey(&self, pic: Ref<'_, ITfContext>, guid: *const GUID) -> Result<BOOL> {
+        let eaten = guard("preserved key", || {
+            let (Ok(ctx), Some(g)) = (pic.ok(), unsafe { guid.as_ref() }) else {
+                return Ok(false);
+            };
+            let Some((scan, shift)) = parse_preserved(g) else {
+                return Ok(false);
+            };
+            self.sync_preserved();
+            let c = {
+                let mut st = self.state.borrow_mut();
+                if !st.refresh() {
+                    return Ok(false);
+                }
+                let caps = unsafe { GetKeyState(VK_CAPITAL.0 as i32) } & 1 != 0;
+                st.keymap
+                    .as_ref()
+                    .and_then(|m| m.lookup(scan, shift, caps, true))
+            };
+            let Some(c) = c else { return Ok(false) };
+            self.type_char(ctx, c);
+            suppress_menu();
+            Ok(true)
+        })?;
+        Ok(eaten.into())
+    }
+}
+
+impl TextService_Impl {
+    /// Tugma tartibda belgiga ega bo'lsa — o'sha belgi. Ctrl/Alt/Win bilan — hech qachon (tezkor tugmalar).
+    fn mapped(&self, vk: u16, lparam: isize) -> Option<char> {
+        let k = VIRTUAL_KEY(vk);
+        if k == VK_PACKET || vk == 0xE8 {
+            return None; // o'zimiz yuborgan belgi
+        }
+        if held(VK_CONTROL) || held(VK_MENU) || held(VK_LWIN) || held(VK_RWIN) {
+            return None;
+        }
+        // Kengaytirilgan tugmalar (numpad /, strelkalar) tartibga kirmaydi.
+        if (lparam >> 24) & 1 != 0 {
+            return None;
+        }
+        let scan = ((lparam >> 16) & 0xFF) as u8;
+        let mut st = self.state.borrow_mut();
+        if !st.refresh() {
+            return None;
+        }
+        let km = st.keymap.as_ref()?;
+        let caps = unsafe { GetKeyState(VK_CAPITAL.0 as i32) } & 1 != 0;
+        km.lookup(scan, held(VK_SHIFT), caps, false)
+    }
+
+    /// Belgini yozadi va so'z kuzatuviga qo'shadi. Tahrir ishlamasa — Unicode tugma sifatida yuboriladi.
+    fn type_char(&self, ctx: &ITfContext, c: char) {
+        let mut buf = [0u16; 2];
+        let done = Rc::new(Cell::new(false));
+        let es: ITfEditSession = Insert {
+            ctx: ctx.clone(),
+            text: c.encode_utf16(&mut buf).to_vec(),
+            done: done.clone(),
+        }
+        .into();
+        let tid = {
+            let mut st = self.state.borrow_mut();
+            st.undo = None;
+            st.tid
+        };
+        match run_session(ctx, tid, &es, &done) {
+            Outcome::Done | Outcome::Pending => self.state.borrow_mut().typed.push(c),
+            Outcome::Failed => {
+                log::write("keymap: edit session failed, sending as unicode key");
+                send_char(c); // observe_key uni REMAP_TAG bo'yicha so'zga qo'shadi
+            }
+        }
+    }
+
+    /// Backspace oxirgi o'girishni bekor qiladimi (asosiy yo'l; zaxira yo'l observe_key'da).
+    fn undo_ready(&self, vk: u16) -> bool {
+        if VIRTUAL_KEY(vk) != VK_BACK
+            || held(VK_CONTROL)
+            || held(VK_MENU)
+            || held(VK_SHIFT)
+            || held(VK_LWIN)
+            || held(VK_RWIN)
+        {
+            return false;
+        }
+        let st = self.state.borrow();
+        st.cfg.undo_backspace && st.undo.as_ref().is_some_and(|u| !u.blind)
+    }
+
+    fn restore(&self, ctx: &ITfContext) {
+        let Some(u) = self.state.borrow_mut().undo.take() else {
+            return;
+        };
+        // Natijani sessiyaning o'zi hal qiladi (asinxron bajarilsa ham): mos — istisno, mos emas — oddiy Backspace.
+        let done = Rc::new(Cell::new(false));
+        let es: ITfEditSession = Restore {
+            ctx: ctx.clone(),
+            converted: u.converted,
+            original: u.original,
+            state: self.state.clone(),
+            done: done.clone(),
+        }
+        .into();
+        let tid = self.state.borrow().tid;
+        if run_session(ctx, tid, &es, &done) == Outcome::Failed {
+            plain_backspace(&self.state);
+        }
+    }
+
+    fn remember_exception(&self, original: &str) {
+        remember_exception(&self.state, original);
+    }
+
+    /// AltGr qatlamidagi tugmalarni TSF'da ro'yxatga oladi (tartib o'zgarganda qayta).
+    fn sync_preserved(&self) {
+        let (tm, tid, old, want) = {
+            let mut st = self.state.borrow_mut();
+            st.refresh();
+            if !st.keys_dirty {
+                return;
+            }
+            let Some(tm) = st.thread_mgr.clone() else {
+                return;
+            };
+            st.keys_dirty = false;
+            let mut want = Vec::new();
+            if st.active
+                && let Some(km) = &st.keymap
+            {
+                let hkl = unsafe { GetKeyboardLayout(0) };
+                for &(_, scan) in keymap::KEYS {
+                    if km.get(scan, 2).is_none() && km.get(scan, 3).is_none() {
+                        continue;
+                    }
+                    let vk = unsafe { MapVirtualKeyExW(scan as u32, MAPVK_VSC_TO_VK, Some(hkl)) };
+                    if vk == 0 {
+                        continue;
+                    }
+                    for shift in [false, true] {
+                        // Belgi bermaydigan holat ro'yxatga olinmaydi (tugma dasturga o'tsin).
+                        if km.lookup(scan, shift, false, true).is_none()
+                            && km.lookup(scan, shift, true, true).is_none()
+                        {
+                            continue;
+                        }
+                        let mods = TF_MOD_RALT | if shift { TF_MOD_SHIFT } else { 0 };
+                        want.push((
+                            preserved_guid(scan, shift),
+                            TF_PRESERVEDKEY {
+                                uVKey: vk,
+                                uModifiers: mods,
+                            },
+                        ));
+                    }
+                }
+            }
+            (tm, st.tid, std::mem::take(&mut st.preserved), want)
+        };
+        let Ok(ks) = tm.cast::<ITfKeystrokeMgr>() else {
+            return;
+        };
+        for (g, k) in &old {
+            let _ = unsafe { ks.UnpreserveKey(g, k) };
+        }
+        let desc: Vec<u16> = "bitg".encode_utf16().collect();
+        let mut ok = Vec::new();
+        for (g, k) in want {
+            match unsafe { ks.PreserveKey(tid, &g, &k, &desc) } {
+                Ok(()) => ok.push((g, k)),
+                // Boshqa IME yoki dastur shu tugmani olgan — u qatlam ishlamaydi.
+                Err(e) => log::write(&format!("preserve key failed hr={:#x}", e.code().0)),
+            }
+        }
+        log::write(&format!("altgr keys: {}", ok.len()));
+        self.state.borrow_mut().preserved = ok;
     }
 }
 
@@ -451,7 +706,7 @@ fn key_input(vk: VIRTUAL_KEY, scan: u16, flags: KEYBD_EVENT_FLAGS) -> INPUT {
                 wScan: scan,
                 dwFlags: flags,
                 time: 0,
-                dwExtraInfo: 0xB17B,
+                dwExtraInfo: INJECT_TAG,
             },
         },
     }
@@ -459,13 +714,18 @@ fn key_input(vk: VIRTUAL_KEY, scan: u16, flags: KEYBD_EVENT_FLAGS) -> INPUT {
 
 impl TextService_Impl {
     fn observe_key(&self, vk: u16, lparam: isize) {
+        // Menyuni to'xtatuvchi belgisiz tugma (suppress_menu) — so'z kuzatuviga ta'sir qilmaydi.
+        if vk == 0xE8 {
+            return;
+        }
         let mut st = self.state.borrow_mut();
         let k = VIRTUAL_KEY(vk);
-        // bitg klaviatura tartibi (tray ilovasi) yozgan harf: so'zning davomi.
+        // Tartib belgisi tahrir sessiyasisiz yuborilgan (send_char): so'zning davomi.
         if k == VK_PACKET {
             let extra = unsafe { GetMessageExtraInfo() }.0 as u64;
             if extra >> 32 == REMAP_TAG {
-                if let Some(c) = char::from_u32(extra as u32) {
+                // Surrogat juftning ikkinchi yarmida belgi 0 — o'tkazib yuboriladi.
+                if let Some(c) = char::from_u32(extra as u32).filter(|&c| c != '\0') {
                     st.typed.push(c);
                 }
                 return;
@@ -482,12 +742,17 @@ impl TextService_Impl {
                 st.injecting = 0;
             }
         }
+        // O'girishni bekor qilish faqat darhol keyingi Backspace bilan.
+        if !matches!(k, VK_BACK | VK_SHIFT | VK_LSHIFT | VK_RSHIFT) {
+            st.undo = None;
+        }
         // Tugmalar orasida sichqoncha bosilgan bo'lsa — kursor boshqa joyda bo'lishi mumkin.
         let clicked = unsafe {
             (GetAsyncKeyState(VK_LBUTTON.0 as i32) & 1) != 0
                 || (GetAsyncKeyState(VK_RBUTTON.0 as i32) & 1) != 0
         };
         if clicked {
+            st.undo = None;
             // So'z boshlanmagan bo'lsa (maydonga bosib, yozishni boshlash) — yangi so'z boshi.
             if st.typed.is_empty() {
                 st.typed.boundary();
@@ -522,13 +787,35 @@ impl TextService_Impl {
                     log::write("fallback: word unchanged");
                     return;
                 };
-                drop_and_retype(st, word.chars().count(), &edit.insert);
+                if drop_and_retype(st, word.chars().count(), &edit.insert, true) {
+                    st.undo = Some(Undo {
+                        original: word,
+                        converted: edit.insert,
+                        blind: true,
+                    });
+                }
             }
             VK_RETURN | VK_TAB => {
                 st.typed.boundary();
                 st.session.reset();
             }
-            VK_BACK => st.typed.backspace(),
+            VK_BACK => {
+                let undo = st.undo.take().filter(|u| u.blind && st.cfg.undo_backspace);
+                let Some(u) = undo else {
+                    st.typed.backspace();
+                    return;
+                };
+                // Bu Backspace probelni o'chiradi; so'ng o'girilgan so'z o'rniga asli yoziladi.
+                if drop_and_retype(
+                    &mut st,
+                    u.converted.chars().count().saturating_sub(1),
+                    &u.original,
+                    false,
+                ) {
+                    drop(st);
+                    self.remember_exception(&u.original);
+                }
+            }
             VK_LEFT | VK_RIGHT | VK_UP | VK_DOWN | VK_HOME | VK_END | VK_PRIOR | VK_NEXT
             | VK_DELETE | VK_ESCAPE | VK_PACKET => {
                 st.typed.lost();
@@ -544,14 +831,48 @@ impl TextService_Impl {
     }
 }
 
-/// Probel navbatda bizdan oldin turibdi: u yozilgach so'z + probelni o'chirib, yangisini yozamiz.
-fn drop_and_retype(st: &mut State, word_chars: usize, insert: &str) {
+/// Bekor qilingan so'z keyin o'girilmasin: darhol xotirada va `exceptions.txt`da.
+fn remember_exception(state: &Rc<RefCell<State>>, original: &str) {
+    let Ok(mut st) = state.try_borrow_mut() else {
+        return;
+    };
+    let k = fold_key(original);
+    if !st.cfg.opts.exceptions.contains(&k) {
+        st.cfg.opts.exceptions.push(k);
+    }
+    st.session.reset();
+    st.typed.lost();
+    match config::add_exception(original) {
+        Ok(()) => log::write("undo: restored, added to exceptions"),
+        Err(e) => log::write(&format!("undo: restored, exceptions write failed: {e}")),
+    }
+    // O'z yozuvimiz fayl holatini o'zgartirdi — qayta o'qish shart emas.
+    st.stamp = config::stamp();
+}
+
+/// Ushlangan Backspace bekor qilishga yaramadi (matn o'zgargan) — odatdagidek ishlasin.
+fn plain_backspace(state: &Rc<RefCell<State>>) {
+    log::write("undo: text changed, plain backspace");
+    if let Ok(mut st) = state.try_borrow_mut() {
+        st.injecting += 1;
+        st.inject_until = Some(Instant::now() + Duration::from_millis(1500));
+    }
+    let inputs = [
+        key_input(VK_BACK, 0, KEYBD_EVENT_FLAGS(0)),
+        key_input(VK_BACK, 0, KEYEVENTF_KEYUP),
+    ];
+    unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+}
+
+/// Bosilgan tugma (probel yoki Backspace) navbatda bizdan oldin turibdi: u ishlagach `back` ta
+/// Backspace + 1 va yangi matn (+ probel) yuboriladi.
+fn drop_and_retype(st: &mut State, back: usize, insert: &str, space: bool) -> bool {
     let mut inputs = Vec::new();
-    for _ in 0..=word_chars {
+    for _ in 0..=back {
         inputs.push(key_input(VK_BACK, 0, KEYBD_EVENT_FLAGS(0)));
         inputs.push(key_input(VK_BACK, 0, KEYEVENTF_KEYUP));
     }
-    let units: Vec<u16> = insert.encode_utf16().chain(std::iter::once(0x20)).collect();
+    let units: Vec<u16> = insert.encode_utf16().chain(space.then_some(0x20)).collect();
     for &u in &units {
         inputs.push(key_input(VIRTUAL_KEY(0), u, KEYEVENTF_UNICODE));
         inputs.push(key_input(
@@ -560,14 +881,20 @@ fn drop_and_retype(st: &mut State, word_chars: usize, insert: &str) {
             KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
         ));
     }
-    st.injecting = (word_chars + 1 + units.len()) as u32;
+    st.injecting = (back + 1 + units.len()) as u32;
     st.inject_until = Some(Instant::now() + Duration::from_millis(1500));
     let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) } as usize;
     if sent == inputs.len() {
-        log::write("fallback: converted");
+        log::write(if space {
+            "fallback: converted"
+        } else {
+            "fallback: undo"
+        });
+        true
     } else {
         st.injecting = 0;
         log::write(&format!("fallback: SendInput sent {sent}/{}", inputs.len()));
+        false
     }
 }
 
@@ -604,6 +931,7 @@ struct Replace {
     ctx: ITfContext,
     word: String,
     insert: String,
+    state: Rc<RefCell<State>>,
 }
 
 impl ITfEditSession_Impl for Replace_Impl {
@@ -668,11 +996,222 @@ impl Replace_Impl {
         let r = unsafe { self.ctx.SetSelection(ec, std::slice::from_ref(&sel)) };
         drop(std::mem::ManuallyDrop::into_inner(sel.range));
         r?;
+        if keep_trail && let Ok(mut st) = self.state.try_borrow_mut() {
+            st.undo = Some(Undo {
+                original: self.word.clone(),
+                converted: self.insert.clone(),
+                blind: false,
+            });
+        }
         Ok("converted")
     }
+}
+
+/// Kursorga belgi yozadi. IMM32 orqali ishlaydigan (transitory) kontekstda — qisqa kompozitsiya bilan,
+/// aks holda dastur yozuvni ko'rmaydi.
+#[implement(ITfEditSession)]
+struct Insert {
+    ctx: ITfContext,
+    text: Vec<u16>,
+    done: Rc<Cell<bool>>,
+}
+
+impl ITfEditSession_Impl for Insert_Impl {
+    fn DoEditSession(&self, ec: u32) -> Result<()> {
+        guard("insert", || self.run(ec))
+    }
+}
+
+impl Insert_Impl {
+    /// `done` belgi yozilgan zahoti qo'yiladi: keyingi xato (kursor, kompozitsiyani yopish) zaxira yo'lni
+    /// ishga tushirmasin — aks holda belgi ikki marta yoziladi.
+    fn run(&self, ec: u32) -> Result<()> {
+        let transitory =
+            unsafe { self.ctx.GetStatus() }.is_ok_and(|s| s.dwStaticFlags & TF_SS_TRANSITORY != 0);
+        let ins: ITfInsertAtSelection = self.ctx.cast()?;
+        if !transitory {
+            let range = unsafe {
+                ins.InsertTextAtSelection(ec, INSERT_TEXT_AT_SELECTION_FLAGS(0), &self.text)?
+            };
+            self.done.set(true);
+            return set_caret_after(&self.ctx, ec, &range);
+        }
+        let range = unsafe { ins.InsertTextAtSelection(ec, TF_IAS_QUERYONLY, &[])? };
+        let cc: ITfContextComposition = self.ctx.cast()?;
+        let comp = unsafe { cc.StartComposition(ec, &range, None::<&ITfCompositionSink>)? };
+        let r = unsafe { range.SetText(ec, 0, &self.text) };
+        if r.is_ok() {
+            self.done.set(true);
+            let _ = set_caret_after(&self.ctx, ec, &range);
+        }
+        // Kompozitsiya har holda yopiladi — aks holda dastur "yozilmoqda" holatida qoladi.
+        let end = unsafe { comp.EndComposition(ec) };
+        r.and(end)
+    }
+}
+
+/// Backspace: "o'girilgan so'z + bo'shliq" → asl so'z (bo'shliq Backspace kabi o'chadi).
+/// Natija shu yerda hal bo'ladi (asinxron bajarilsa ham): mos — istisno, mos emas — oddiy Backspace.
+#[implement(ITfEditSession)]
+struct Restore {
+    ctx: ITfContext,
+    converted: String,
+    original: String,
+    state: Rc<RefCell<State>>,
+    /// Sessiya bajarildi (natijasi qanday bo'lmasin).
+    done: Rc<Cell<bool>>,
+}
+
+impl ITfEditSession_Impl for Restore_Impl {
+    fn DoEditSession(&self, ec: u32) -> Result<()> {
+        self.done.set(true);
+        let restored = guard("restore", || self.run(ec))?;
+        if restored {
+            remember_exception(&self.state, &self.original);
+        } else {
+            plain_backspace(&self.state);
+        }
+        Ok(())
+    }
+}
+
+impl Restore_Impl {
+    fn run(&self, ec: u32) -> Result<bool> {
+        let Some((caret, before, reached)) = read_before_caret(&self.ctx, ec)? else {
+            return Ok(false);
+        };
+        let Some(t) = plan::word_before_caret(&before, reached) else {
+            return Ok(false);
+        };
+        if t.word != self.converted || t.trailing != 1 {
+            return Ok(false);
+        }
+        let target = unsafe { caret.Clone()? };
+        let back = (t.trailing + t.word_len) as i32;
+        let mut m = 0i32;
+        unsafe { target.ShiftStart(ec, -back, &mut m, std::ptr::null())? };
+        if m != -back {
+            return Ok(false);
+        }
+        let text: Vec<u16> = self.original.encode_utf16().collect();
+        unsafe { target.SetText(ec, 0, &text)? };
+        let _ = set_caret_after(&self.ctx, ec, &target);
+        Ok(true)
+    }
+}
+
+fn set_caret_after(ctx: &ITfContext, ec: u32, range: &ITfRange) -> Result<()> {
+    let after = unsafe { range.Clone()? };
+    unsafe { after.Collapse(ec, TF_ANCHOR_END)? };
+    let sel = TF_SELECTION {
+        range: std::mem::ManuallyDrop::new(Some(after)),
+        style: TF_SELECTIONSTYLE {
+            ase: TF_AE_END,
+            fInterimChar: false.into(),
+        },
+    };
+    let r = unsafe { ctx.SetSelection(ec, std::slice::from_ref(&sel)) };
+    drop(std::mem::ManuallyDrop::into_inner(sel.range));
+    r
+}
+
+#[derive(PartialEq, Eq, Debug)]
+enum Outcome {
+    Done,
+    /// Keyinroq bajariladi — zaxira yo'l ishlatilmaydi (ikki marta yozilmasin).
+    Pending,
+    Failed,
+}
+
+/// Sinxron tahrir (tugma ishlovchisi ichida ruxsat). Rad etilsa — asinxron.
+fn run_session(ctx: &ITfContext, tid: u32, es: &ITfEditSession, done: &Rc<Cell<bool>>) -> Outcome {
+    let sync = unsafe { ctx.RequestEditSession(tid, es, TF_ES_SYNC | TF_ES_READWRITE) };
+    if done.get() {
+        return Outcome::Done;
+    }
+    if !matches!(sync, Ok(hr) if hr == TF_E_SYNCHRONOUS) {
+        return Outcome::Failed;
+    }
+    match unsafe { ctx.RequestEditSession(tid, es, TF_ES_ASYNCDONTCARE | TF_ES_READWRITE) } {
+        _ if done.get() => Outcome::Done,
+        Ok(hr) if hr == TS_S_ASYNC => Outcome::Pending,
+        _ => Outcome::Failed,
+    }
+}
+
+/// AltGr qatlami tugmasi GUID'i: skan-kod va Shift ichida.
+fn preserved_guid(scan: u8, shift: bool) -> GUID {
+    GUID::from_values(
+        0xB17C_0000 | (scan as u32) << 8 | shift as u32,
+        0x6B17,
+        0x4D3A,
+        [0x9E, 0x21, 0x5C, 0x0F, 0x7A, 0x33, 0x10, 0x62],
+    )
+}
+
+fn parse_preserved(g: &GUID) -> Option<(u8, bool)> {
+    let base = preserved_guid(0, false);
+    (g.data1 >> 16 == 0xB17C
+        && g.data2 == base.data2
+        && g.data3 == base.data3
+        && g.data4 == base.data4)
+        .then_some((((g.data1 >> 8) & 0xFF) as u8, g.data1 & 1 == 1))
+}
+
+/// O'zimiz yuboradigan belgi (tahrir sessiyasi ishlamaganda): IME uni so'zning davomi deb biladi.
+fn send_char(c: char) {
+    let mut buf = [0u16; 2];
+    let units = c.encode_utf16(&mut buf);
+    let mut inputs = Vec::new();
+    for (i, &u) in units.iter().enumerate() {
+        let extra = (REMAP_TAG << 32) | if i == 0 { c as u64 } else { 0 };
+        for f in [KEYEVENTF_UNICODE, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP] {
+            inputs.push(INPUT {
+                r#type: INPUT_KEYBOARD,
+                Anonymous: INPUT_0 {
+                    ki: KEYBDINPUT {
+                        wVk: VIRTUAL_KEY(0),
+                        wScan: u,
+                        dwFlags: f,
+                        time: 0,
+                        dwExtraInfo: extra as usize,
+                    },
+                },
+            });
+        }
+    }
+    unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+}
+
+/// O'ng Alt bosilgan tugma ushlangach Alt qo'yib yuborilsa, dastur menyusi ochiladi. Belgisiz tugma
+/// yuborib buni to'xtatamiz (PowerToys usuli).
+fn suppress_menu() {
+    let inputs = [
+        key_input(VIRTUAL_KEY(0xE8), 0, KEYBD_EVENT_FLAGS(0)),
+        key_input(VIRTUAL_KEY(0xE8), 0, KEYEVENTF_KEYUP),
+    ];
+    unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
 }
 
 #[allow(dead_code)]
 fn _iids() -> [GUID; 2] {
     [ITfTextInputProcessorEx::IID, ITfTextInputProcessor::IID]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preserved_guid_round_trip() {
+        for &(_, scan) in keymap::KEYS {
+            for shift in [false, true] {
+                assert_eq!(
+                    parse_preserved(&preserved_guid(scan, shift)),
+                    Some((scan, shift))
+                );
+            }
+        }
+        assert_eq!(parse_preserved(&GUID::zeroed()), None);
+    }
 }

@@ -3,5 +3,9 @@
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
 
+# 32-bit dasturlar (eski 1C, ba'zi bank mijozlari) faqat 32-bit IME DLL'ni yuklaydi.
+[target.i686-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
 [target.aarch64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]

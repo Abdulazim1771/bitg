@@ -8,6 +8,8 @@
     C:\Program Files\bitg\ime\<versiya>\      IME DLL (TSF). Versiyali papka: yangilashda ochiq dasturlar (Chrome,
                                               Telegram) eski DLL'ni ushlab turadi, yangilari darhol yangisini oladi —
                                               hech narsani yopish va qayta yuklash shart emas.
+    C:\Program Files\bitg\ime\<versiya>\x86\  32-bit IME DLL: 32-bit dasturlar (eski 1C, bank mijozlari) uchun.
+                                              32-bit regsvr32 bilan ro'yxatdan o'tadi (Wow6432Node\CLSID).
 
   Administrator uchun xossalar (msiexec /i bitg.msi /qn XOSSA=0):
     AUTOSTART=1|0     barcha foydalanuvchilarda Windows bilan trayda ishga tushish (har kim ilovadan o'zi o'chira oladi)
@@ -65,7 +67,9 @@
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="bitg">
         <Directory Id="IMEROOT" Name="ime">
-          <Directory Id="IMEDIR" Name="$(Version)" />
+          <Directory Id="IMEDIR" Name="$(Version)">
+            <Directory Id="IMEDIR32" Name="x86" />
+          </Directory>
         </Directory>
       </Directory>
     </StandardDirectory>
@@ -98,6 +102,10 @@
 
       <Component Id="Ime" Directory="IMEDIR">
         <File Id="ImeDll" Source="$(BinDir)bitg_tsf.dll" KeyPath="yes" />
+      </Component>
+      <!-- Faqat fayl (registr yo'q): 32-bit DLL 64-bit papkada ham yuklanadi; ro'yxatni 32-bit regsvr32 yozadi. -->
+      <Component Id="Ime32" Directory="IMEDIR32">
+        <File Id="ImeDll32" Source="$(BinDir32)bitg_tsf.dll" KeyPath="yes" />
       </Component>
 
       <Component Id="MachineSettings">
@@ -144,11 +152,24 @@
     <CustomAction Id="UnregisterIme" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec"
                   Execute="deferred" Impersonate="no" Return="ignore" />
 
+    <!-- 32-bit: x64 paketda [SystemFolder] = SysWOW64 (32-bit regsvr32). Avval 32-bit, keyin 64-bit ro'yxatdan
+         o'tadi — TSF profil belgisi 64-bit DLL'ga ishora qilib qoladi. -->
+    <SetProperty Id="RegisterIme32" Value="&quot;[SystemFolder]regsvr32.exe&quot; /s &quot;[#ImeDll32]&quot;"
+                 Before="RegisterIme32" Sequence="execute" />
+    <CustomAction Id="RegisterIme32" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="check" />
+    <SetProperty Id="UnregisterIme32" Value="&quot;[SystemFolder]regsvr32.exe&quot; /u /s &quot;[#ImeDll32]&quot;"
+                 Before="UnregisterIme32" Sequence="execute" />
+    <CustomAction Id="UnregisterIme32" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+
     <InstallExecuteSequence>
       <Custom Action="CloseAppNow" Before="InstallValidate" />
       <Custom Action="StopApp" Before="RemoveFiles" />
+      <Custom Action="UnregisterIme32" Before="UnregisterIme" Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
       <Custom Action="UnregisterIme" Before="RemoveFiles" Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
-      <Custom Action="RegisterIme" After="InstallFiles" Condition="NOT REMOVE~=&quot;ALL&quot;" />
+      <Custom Action="RegisterIme32" After="InstallFiles" Condition="NOT REMOVE~=&quot;ALL&quot;" />
+      <Custom Action="RegisterIme" After="RegisterIme32" Condition="NOT REMOVE~=&quot;ALL&quot;" />
     </InstallExecuteSequence>
 
     <!-- ===== Oynalar ===== -->
