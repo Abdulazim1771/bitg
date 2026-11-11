@@ -82,7 +82,14 @@ pub fn is_protected(token: &str) -> bool {
     {
         return true;
     }
+    if is_initials(core) {
+        return false; // A.Lukashenko, Sh.Sharipov, M.Jo'rayev
+    }
     let chars: Vec<char> = core.chars().collect();
+    // O'zA, O'zR, O'zLiDeP: o'/g' bor — kod emas, o'zbekcha qisqartma.
+    let uz_marked = chars
+        .windows(2)
+        .any(|w| matches!(w[0], 'o' | 'O' | 'g' | 'G') && is_apostrophe(w[1]));
     for (i, &c) in chars.iter().enumerate() {
         if "_=(){}[]<>$\\*&|^~#/%+".contains(c) {
             return true;
@@ -97,7 +104,7 @@ pub fn is_protected(token: &str) -> bool {
             return true;
         }
         // camelCase / iPhone: kichik harfdan keyin katta harf.
-        if c.is_uppercase() && i > 0 && chars[i - 1].is_lowercase() {
+        if !uz_marked && c.is_uppercase() && i > 0 && chars[i - 1].is_lowercase() {
             return true;
         }
     }
@@ -126,6 +133,30 @@ pub fn is_protected(token: &str) -> bool {
         return true;
     }
     false
+}
+
+/// Ism bosh harflari + familiya: "A.Lukashenko", "Sh.Sharipov", "O'.Turmatov", "A.B.Karimov".
+fn is_initials(core: &str) -> bool {
+    let mut parts: Vec<&str> = core.split('.').collect();
+    let Some(last) = parts.pop() else {
+        return false;
+    };
+    if parts.is_empty() {
+        return false;
+    }
+    let initial_ok = |p: &str| {
+        let letters = p.chars().filter(|c| c.is_alphabetic()).count();
+        (1..=2).contains(&letters)
+            && p.chars().next().is_some_and(|c| c.is_uppercase())
+            && p.chars().all(|c| c.is_alphabetic() || is_apostrophe(c))
+    };
+    let surname_ok = last.chars().count() >= 2
+        && last.chars().next().is_some_and(|c| c.is_uppercase())
+        && last
+            .chars()
+            .all(|c| c.is_alphabetic() || is_apostrophe(c) || c == '-')
+        && !TLDS.contains(&last.to_lowercase().as_str());
+    parts.iter().all(|p| initial_ok(p)) && surname_ok
 }
 
 /// "5-sinf", "2026-yilgi", "3-chi": raqam, chiziqcha, so'ng faqat harflar.

@@ -6,7 +6,8 @@ Manbalar (repoga kiritilmaydi, yuklab olinadi):
   * SCOWL 2020.12.07 (ruxsat beruvchi litsenziya, Kevin Atkinson): http://wordlist.aspell.net/
 
 Ishlatish:
-  python -I tools/build_lexicon.py --scowl <scowl-dir> --leipzig <words.txt> [<words.txt> ...]
+  python -I tools/build_lexicon.py --scowl <scowl-dir> --leipzig <wiki-words.txt> \
+      --leipzig-cyrillic-only <community-words.txt>
 
 Faqat yig'ilgan statistika (so'z + og'irlik) saqlanadi — matnlarning o'zi emas.
 """
@@ -62,16 +63,19 @@ def is_cyr(s):
     return any("Ѐ" <= ch <= "ӿ" for ch in s)
 
 
-def read_leipzig(paths):
+def read_leipzig(paths, cyr_only):
     uz = {}
     sh_split = {}
-    for p in paths:
+    joined = {}
+    for p in [(p, False) for p in paths] + [(p, True) for p in cyr_only]:
+        p, only_cyr = p
         with open(p, encoding="utf-8", errors="replace") as fh:
             for line in fh:
                 parts = line.rstrip("\n").split("\t")
                 if len(parts) < 3:
                     continue
-                word, freq = parts[1], parts[2]
+                # wikipedia: id, so'z, chastota; community: id, so'z, so'z, chastota
+                word, freq = parts[1], parts[-1]
                 try:
                     f = int(freq)
                 except ValueError:
@@ -84,14 +88,20 @@ def read_leipzig(paths):
                     if any(pair in lw for pair in SPLIT_PAIRS):
                         # Isʼhoq: kirillda s va h alohida — eski lotinda tutuqsiz "ishoq" ham, "is'hoq" ham yoziladi.
                         sh_split[key] = sh_split.get(key, 0) + f
+                    elif "ш" in lw or "ч" in lw:
+                        joined[key] = joined.get(key, 0) + f
                     uz[key] = uz.get(key, 0) + f
                     continue
+                if only_cyr:
+                    continue  # bu korpusning lotin qismi aralash (rus/ingliz) — faqat kirill olinadi
                 key = fold(word)
                 if not LATIN_WORD.match(key) or not re.search("[a-z]", key):
                     continue
                 if key.startswith("'") or "''" in key:
                     continue
                 uz[key] = uz.get(key, 0) + f
+    # Kirill imlo xatolari (сҳу = шу) shovqin: ajratilgan shakl ш/ч li shakldan kamida 3 marta ko'p bo'lsin.
+    sh_split = {k: f for k, f in sh_split.items() if f >= 3 * joined.get(k, 0)}
     return uz, sh_split
 
 
@@ -138,11 +148,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scowl", required=True)
     ap.add_argument("--leipzig", nargs="+", required=True)
+    ap.add_argument("--leipzig-cyrillic-only", nargs="*", default=[])
     ap.add_argument("--min-freq", type=int, default=3)
     ap.add_argument("--context-top", type=int, default=20000)
     a = ap.parse_args()
 
-    uz, sh_split = read_leipzig(a.leipzig)
+    uz, sh_split = read_leipzig(a.leipzig, a.leipzig_cyrillic_only)
     en = read_scowl(a.scowl)
 
     items = [(k, f) for k, f in uz.items() if f >= a.min_freq]
@@ -154,7 +165,8 @@ def main():
     split_out = sorted((k, f) for k, f in sh_split.items() if f >= 2)
 
     os.makedirs(OUT_DIR, exist_ok=True)
-    src = "Leipzig Corpora Collection (CC BY 4.0): " + ", ".join(os.path.basename(p) for p in a.leipzig)
+    src = "Leipzig Corpora Collection (CC BY 4.0): " + ", ".join(
+        os.path.basename(p) for p in a.leipzig + a.leipzig_cyrillic_only)
     write_tsv(os.path.join(OUT_DIR, "uz.tsv"),
               ["o'zbekcha so'zlar (eski lotin kaliti) va og'irligi 1..4.5 = log10(chastota)+1", src,
                "tools/build_lexicon.py bilan qurilgan"], uz_out)

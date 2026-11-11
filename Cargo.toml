@@ -14,6 +14,7 @@ authors = ["dtwinuz"]
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
+# "unwind": IME DLL boshqa dasturlar ichida ishlaydi — panic ushlanadi (catch_unwind), dastur yopilmaydi.
+panic = "unwind"
 strip = true
 opt-level = 3

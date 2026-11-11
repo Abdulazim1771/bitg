@@ -188,7 +188,10 @@ fn is_english_contraction(key: &str) -> bool {
         key.strip_suffix(s)
             .is_some_and(|stem| stem.chars().count() >= 1)
     });
+    // "i" o'zbekchada ham bor (kirill «и»), lekin I'm / I'd — faqat inglizcha.
     always
+        || key == "i'm"
+        || key == "i'd"
         || ["'m", "'d"].iter().any(|s| {
             key.strip_suffix(s)
                 .is_some_and(|stem| en().contains_key(stem) && uz_weight(stem).is_none())

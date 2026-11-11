@@ -34,10 +34,15 @@ O'zbekiston shaharlari
 
 | To'plam | Natija |
 |---|---|
-| Inglizcha gaplar (sh/ch/apostrof bor, 3000 ta, Leipzig news + web) — o'zgarmasligi kerak | **99.87%** |
-| Tezlik | ~1.3 µs/so'z (release, x64) |
+| O'zbekcha gaplar (3000 ta, kirill matndan: kirish = eski lotin, kutilgan = yangi lotin, apostrof turlari aralash) | **99.67%** |
+| Inglizcha gaplar (sh/ch/apostrof bor, 3000 ta, Leipzig news + web) — o'zgarmasligi kerak | **99.73%** |
+| Tezlik | ~1.3–1.8 µs/so'z (release, x64) |
 
-To'plamni o'zingiz qurish: [`tools/build_eval.py`](tools/build_eval.py), so'ng `bitg eval eval/out/en.tsv`.
+O'zbekcha to'plamda kirish ham, kutilgan javob ham kirill matndan mustaqil olinadi, shuning uchun konvertor
+`Is'hoq → Ishoq`, `O'zA → ÖzA`, `Sh.Sharipov → Ş.Şaripov` kabi holatlarni o'zi topishi kerak. Qolgan xatolarning
+ko'pi korpusdagi shovqin (kirill gap ichida lotin so'z).
+
+To'plamni o'zingiz qurish: [`tools/build_eval.py`](tools/build_eval.py), so'ng `bitg eval eval/out/uz.tsv`.
 
 ## Tuzilma
 
@@ -45,7 +50,7 @@ To'plamni o'zingiz qurish: [`tools/build_eval.py`](tools/build_eval.py), so'ng `
 flowchart LR
   core["bitg-core<br/>(Rust, bog'liqliksiz)"]
   cli["bitg CLI"]
-  tsf["Windows TSF IME<br/>(reja)"]
+  tsf["Windows TSF IME<br/>(prototip)"]
   tray["Tray / sozlamalar<br/>(reja)"]
   mob["Android / iOS klaviatura<br/>(reja)"]
   web["Web / WASM<br/>(reja)"]
@@ -60,6 +65,20 @@ flowchart LR
 |---|---|
 | [`bitg-core`](crates/bitg-core) | qoidalar (`latin`), kirill (`cyrillic`), teskari (`reverse`), tokenlar (`token`), til dalili (`lang`), yozish sessiyasi (`Session`), C ABI (`ffi`) |
 | [`bitg-cli`](crates/bitg-cli) | `bitg convert / old / explain / eval` |
+| [`bitg-tsf`](crates/bitg-tsf) | Windows matn kiritish xizmati (TSF TIP, Rust): probel/Enter'da kursor oldidagi so'zni joyida almashtiradi — hook, SendInput, clipboard yo'q |
+
+### Windows IME prototipini sinash
+
+```powershell
+cargo build --release -p bitg-tsf
+# administrator PowerShell:
+regsvr32 target\release\bitg_tsf.dll
+# Sozlamalar → Vaqt va til → Til → O'zbek (lotin) → Klaviatura qo'shish → "bitg", so'ng Win+Probel bilan tanlang
+# O'chirish: regsvr32 /u target\release\bitg_tsf.dll
+```
+
+Log: `%LOCALAPPDATA%\bitg\tsf.log` — faqat dastur nomi va natija (`converted sync/async`, xato kodi);
+yozilgan matn hech qachon saqlanmaydi.
 
 ## Ishlatish
 
@@ -89,12 +108,13 @@ if let Some(edit) = s.complete_word("choy", &Options::default()) {
 * o'zbekcha: [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de/en/download/Uzbek) (CC BY 4.0)
 * inglizcha: [SCOWL](http://wordlist.aspell.net/) (Kevin Atkinson, ruxsat beruvchi litsenziya)
 
-Qayta qurish: `python -I tools/build_lexicon.py --scowl <dir> --leipzig <words.txt>...`
+Qayta qurish: `python -I tools/build_lexicon.py --scowl <dir> --leipzig <wiki-words.txt> --leipzig-cyrillic-only <community-words.txt>`
 
 ## Yo'l xaritasi
 
 - [x] Phase 0a — yadro, CLI, inglizcha himoya, o'lchov
-- [ ] Phase 0b — Windows TSF IME prototipi: qaysi dasturlarda kursor oldidagi matn o'qiladi (Chrome, Telegram, VS Code, Word)
+- [x] O'zbekcha o'lchov (kirill korpusdan), Is'hoq/Ishoq lug'ati
+- [ ] Phase 0b — Windows TSF IME prototipi (kod tayyor): qaysi dasturlarda ishlashini o'lchash (Chrome, Telegram, VS Code, Word)
 - [ ] MVP — imzolangan Windows beta: TSF IME + tray, Backspace bilan qaytarish, istisnolar
 - [ ] v1 — qonun kuchga kirishidan oldin (2027-aprel)
 - [ ] Android, iOS, macOS, Linux; Word/brauzer kengaytmasi; B2B API

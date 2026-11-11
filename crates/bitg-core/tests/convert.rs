@@ -23,6 +23,17 @@ fn uzbek_sentences() {
 }
 
 #[test]
+fn initials_and_abbreviations_convert() {
+    assert_eq!(c("A.Lukashenko va Sh.Sharipov"), "A.Lukaşenko va Ş.Şaripov");
+    assert_eq!(c("M.Jo'rayev, O'zA, O'zR"), "M.Jörayev, ÖzA, ÖzR");
+    // kod va domenlar avvalgidek tegilmaydi
+    assert_eq!(
+        c("obj.show kun.uz myShop I'm"),
+        "obj.show kun.uz myShop I'm"
+    );
+}
+
+#[test]
 fn whitespace_and_lines_are_preserved() {
     assert_eq!(c("  choy\n\tshahar  "), "  çoy\n\tşahar  ");
 }
