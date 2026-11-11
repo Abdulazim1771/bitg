@@ -14,6 +14,7 @@ pub mod cyrillic;
 pub mod ffi;
 pub mod lang;
 pub mod latin;
+mod lexicon;
 pub mod reverse;
 pub mod token;
 #[cfg(target_arch = "wasm32")]
@@ -168,7 +169,7 @@ fn english_blocks(core: &str, own: f32, ctx: f32) -> bool {
 }
 
 /// SCOWL 10/20 darajasidagi (eng ko'p uchraydigan) inglizcha so'zning dalili.
-const STRONG_ENGLISH: f32 = -3.0;
+const STRONG_ENGLISH: f32 = -2.0;
 /// Kontekst shundan inglizcharoq bo'lsa apostrof tiklanmaydi ("Gogol ozone ...").
 const RESTORE_CTX_MIN: f32 = -1.0;
 /// Inglizcha lug'atdagi so'zni (song → so'ng) tiklash uchun gap shunchalik aniq o'zbekcha bo'lsin.
@@ -231,6 +232,10 @@ fn convert_token(
     // Unlisiz katta harfli qisqartma (TSH, PTCH, CH) va o'zbekchada yo'q harfli so'z (Pöschl, Müller).
     if is_acronym(core) || has_foreign_letters(core) {
         return (tok.to_string(), Reason::Unchanged);
+    }
+    // Brend nomi (Photoshop, Chevroletda) — savdo belgisi asl yozuvida qoladi.
+    if opts.english_guard && lang::is_brand(core) {
+        return (tok.to_string(), Reason::Protected);
     }
 
     // Tushib qolgan apostrof (ozbek → o'zbek). Inglizcha gap ichida emas; istisno so'zlarga tegilmaydi.

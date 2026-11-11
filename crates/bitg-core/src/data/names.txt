@@ -1,0 +1,96 @@
+# Brend va mahsulot nomlari (sh/ch bor): savdo belgisi asl lotin yozuvida qoladi — o'girilmaydi, o'zbek qo'shimchasi
+# bilan ham (Photoshopda, Chevroletni). Kishi va joy nomlari bu yerda YO'Q: ular o'zbek imlosida yoziladi
+# (Shakira → Şakira, Pushkin → Puşkin). Umumiy inglizcha so'zlar (chrome, shell, chat) lug'atdan aniqlanadi.
+# Kichik harfda, qatorda bitta nom. Manba: qo'lda tuzilgan.
+# dasturlar va xizmatlar
+chrome
+chromebook
+chromium
+chromecast
+photoshop
+dashlane
+shopify
+openshift
+sharepoint
+powershell
+crashlytics
+hashicorp
+pushbullet
+chatgpt
+deepseek
+shadcn
+chakra
+shazam
+twitch
+snapchat
+dashboard
+checkout
+cashback
+paycash
+chatbot
+blockchain
+bitcoin
+coinmarketcap
+binance
+shiba
+techcrunch
+shutterstock
+mailchimp
+hootsuite
+smartsheet
+freshdesk
+freshworks
+bitbucket
+flashscore
+splash
+unsplash
+pushwoosh
+onesignal
+fetch
+# texnika
+huawei
+hisense
+chuwi
+bosch
+michelin
+macbook
+cherry
+toshiba
+hitachi
+sharp
+shimano
+casio
+# avto
+porsche
+chevrolet
+chery
+changan
+cherokee
+chrysler
+shacman
+mitsubishi
+peugeot
+skoda
+# kiyim, go'zallik
+chanel
+hermes
+lush
+nike
+# oziq-ovqat va restoranlar
+schweppes
+chupa
+chups
+nesquik
+nescafe
+cheetos
+pringles
+snickers
+starbucks
+shakeshack
+mcdonalds
+# yoqilg'i, bank, to'lov
+shell
+chase
+schwab
+mastercard
+cashapp

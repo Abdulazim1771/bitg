@@ -27,7 +27,7 @@ O'zbekiston shaharlari
 | 🔒 **Kod va havolalarga tegmaydi** | URL, email, `@user`, `#teg`, domen, `snake_case`, `camelCase`, `push()`, `shahar123` (parolga o'xshash). |
 | ✍️ **Tutuq va tirnoqni ajratadi** | 12 xil apostrof bitta deb qaraladi; `'Yaxshi tong'` — tirnoq, `tog'` — ğ; `Is'hoq` → `Ishoq`. |
 | 🔁 **Uch yo'nalish** | eski lotin → yangi, kirill → yangi (eng aniq yo'l), yangi → eski (o'tish davri saytlari uchun). |
-| ⚡ **Tez va yengil** | ~1.3 µs/so'z, tarmoq yo'q, holat yo'q, tashqi bog'liqlik yo'q. Bitta yadro: Windows IME, CLI, mobil, web. |
+| ⚡ **Tez va yengil** | 1.4–2.7 µs/so'z, lug'at yuklash 0 ms (qurish vaqtida tayyor jadval), 1.1 MB xotira; tarmoq yo'q, tashqi bog'liqlik yo'q. Bitta yadro: Windows IME, CLI, mobil, web. |
 | 📏 **O'lchanadi** | `bitg eval` — real korpusda aniqlik va tezlik. Har o'zgarish raqam bilan tekshiriladi. |
 
 ## Sifat (hozirgi holat)
@@ -35,9 +35,31 @@ O'zbekiston shaharlari
 | To'plam | Natija |
 |---|---|
 | O'zbekcha gaplar (3000 ta, kirill matndan: kirish = eski lotin, kutilgan = yangi lotin, apostrof turlari aralash) | **99.17%** (farqning ko'pi kirill korpus xatosi: maşğul, ğalaba) |
-| Apostrofsiz yozilgan o'zbekcha ("ozbek", "togri"; boshqa 3000 gap): tiklangan ö/ğ | **77.4%** so'z (3892/5030), noto'g'ri qo'shilgani 13 ta (ko'pi korpus xatosi: ğurur, Ğarb) |
+| Apostrofsiz yozilgan o'zbekcha ("ozbek", "togri"; boshqa 3000 gap): butun gap to'g'ri | **69.07%** gap (2072/3000). Lug'at kengaytirilsa oshadi — ish jarayonida |
 | Inglizcha gaplar (sh/ch/apostrof bor, 3000 ta, Leipzig news + web) — o'zgarmasligi kerak | **99.73%** |
-| Tezlik | ~2–4 µs/so'z (release, x64) |
+| Tezlik | 2.7 µs/so'z o'zbekcha, 1.4 µs/so'z inglizcha matnda (release, x64) |
+
+O'lchov sanasi: 2026-11-12, `bitg eval eval/out/{uz,uz_noapos,en}.tsv`.
+
+### Tezlik va resurs: raqobatchilar bilan bir xil matnda
+
+Bir xil 3000 gapda (`eval/out/uz.tsv`, 42 670 so'z; `en.tsv`, 62 082 so'z). Raqobatchilar dvigateli ularning
+saytidagi JS bundle'dan olinib, o'zgartirmasdan Node 'da yurgizildi; bitg — `cargo run --release -p bitg-core
+--example bench -- eval/out/uz.tsv`. Isitishdan keyin 5 marta o'rtachasi, bitta mashina.
+
+| | o'zbekcha matn | inglizcha matn | ishga tushish | xotira | inglizcha himoya |
+|---|---|---|---|---|---|
+| **bitg** (Rust, native) | 2.72 µs/so'z | **1.40** µs/so'z | **0 ms** | **1.1 MB** private | lug'at + kontekst |
+| alifbochi.uz (JS) | 2.33 | 1.45 | brauzer sahifasi | Node jarayoni 26–41 MB | yo'q (`shop → şop`) |
+| alifbo.akbarovlabs.uz (JS) | 3.39 | 1.93 | brauzer sahifasi | 〃 | yo'q |
+| webnum.uz (JS) | 2.27 | 2.06 | brauzer sahifasi | 〃 | faqat imlo belgisi (c, w, ph) |
+
+Xulosa: faqat jadval bilan almashtiradigan konvertorlar o'zbekcha matnda ~15% tezroq, chunki bitg har so'zni
+lug'at va kontekst bilan tekshiradi. Inglizcha matnda bitg eng tez. Har qanday holatda bu bir so'zga mikrosekund —
+yozayotgan odam sezmaydi (tugmalar orasida ~100 000 µs). Resursda farq katta: lug'at binarga tayyor hash-jadval
+bo'lib kiradi (`crates/bitg-core/build.rs`), ishga tushganda tahlil qilinmaydi va xotira ajratilmaydi, IME
+yuklangan barcha dasturlar uni bitta nusxada bo'lishadi. Avval har dasturda 15–25 ms (sovuq diskda 0.5 s) va
+~8 MB ketardi.
 
 O'zbekcha to'plamda kirish ham, kutilgan javob ham kirill matndan mustaqil olinadi, shuning uchun konvertor
 `Is'hoq → Ishoq`, `O'zA → ÖzA`, `Sh.Sharipov → Ş.Şaripov` kabi holatlarni o'zi topishi kerak. Qolgan "xatolarning"
@@ -58,7 +80,7 @@ flowchart LR
   tsf["Windows TSF IME<br/>(prototip)"]
   tray["Sozlamalar oynasi<br/>(WebView2)"]
   mob["Android / iOS klaviatura<br/>(reja)"]
-  web["Web / WASM<br/>(reja)"]
+  web["Web / WASM<br/>(wasm.rs tayyor, sayt ishlanmoqda)"]
   core --> cli
   core -- "C ABI (ffi.rs)" --> tsf
   core --> tray
@@ -68,10 +90,10 @@ flowchart LR
 
 | Crate | Vazifa |
 |---|---|
-| [`bitg-core`](crates/bitg-core) | qoidalar (`latin`), kirill (`cyrillic`), teskari (`reverse`), tokenlar (`token`), til dalili (`lang`), yozish sessiyasi (`Session`), C ABI (`ffi`) |
+| [`bitg-core`](crates/bitg-core) | qoidalar (`latin`), kirill (`cyrillic`), teskari (`reverse`), tokenlar (`token`), til dalili (`lang`), brendlar (`data/names.txt`), yozish sessiyasi (`Session`), C ABI (`ffi`), brauzer ABI (`wasm`, faqat wasm32) |
 | [`bitg-cli`](crates/bitg-cli) | `bitg convert / old / explain / eval` |
 | [`bitg-settings`](crates/bitg-settings) | sozlamalar oynasi: kalitlar, ro'yxatlar, jonli namuna (Windows, WebView2) |
-| [`bitg-tsf`](crates/bitg-tsf) | Windows matn kiritish xizmati (TSF TIP, Rust): tugmalarga tegmaydi — matn o'zgarishini kuzatadi (`ITfTextEditSink`) va so'zdan keyin probel yozilganda o'sha so'zni joyida almashtiradi. Hook, SendInput, clipboard yo'q |
+| [`bitg-tsf`](crates/bitg-tsf) | Windows matn kiritish xizmati (TSF TIP, Rust): tugmalarga tegmaydi — matn o'zgarishini kuzatadi (`ITfTextEditSink`) va so'zdan keyin probel yozilganda o'sha so'zni joyida almashtiradi. Matnni bermaydigan dasturlarda (Qt: Telegram) — zaxira yo'l: bosilgan harflardan so'z yig'iladi, `SendInput` bilan Backspace + yangi so'z. Hook va clipboard yo'q |
 
 ### O'rnatish (Windows 10/11, x64)
 
@@ -106,6 +128,14 @@ standart: `0` muvaffaqiyat, `3010` qayta yuklash tavsiya etiladi, `1603` xato (s
 dasturlarda yuklangan holda **o'chirish** ~1 daqiqa olishi mumkin (Windows Installer band fayllarni tekshiradi). Fayl
 baribir o'chadi, qayta yuklash kerak emas.
 
+**«Windows kompyuteringizni himoya qildi» oynasi chiqsa.** Beta MSI hozircha imzolanmagan, shuning uchun
+SmartScreen notanish nashriyotchi haqida ogohlantiradi. **Batafsil → Baribir ishga tushirish** ni bosing. Faylni
+tekshirish: Release sahifasidagi `.sha256` bilan solishtiring:
+
+```powershell
+Get-FileHash .\bitg-0.1.0-x64.msi -Algorithm SHA256   # Release'dagi .sha256 bilan bir xil bo'lishi kerak
+```
+
 O'rnatuvchini qurish (WiX 5, .NET SDK): `pwsh installer/build.ps1` → `dist/bitg-<versiya>-x64.msi` + `.sha256`.
 `-CertThumbprint` yoki `BITG_SIGN_PFX` bilan binarlar va MSI imzolanadi (SHA-256, vaqt tamg'asi). `v*` tegi qo'yilsa,
 [`release`](.github/workflows/release.yml) workflow MSI'ni GitHub Release'ga chiqaradi.
@@ -129,13 +159,26 @@ O'zgarishlar darhol saqlanadi; IME ularni bir soniya ichida, dasturlarni qayta o
 Dizayn yo'nalishi: [`crates/bitg-settings/DESIGN.md`](crates/bitg-settings/DESIGN.md).
 
 Fayllar (qo'lda tahrirlash ham mumkin): `%APPDATA%\bitg\settings.ini` (`enabled`, `english_guard`, `cyrillic`,
-`restore_apostrophes`, `tutuq`, `fallback`, `disabled_apps`) va `%APPDATA%\bitg\exceptions.txt` (har qatorda bitta so'z).
+`restore_apostrophes`, `tutuq`, `undo_backspace`, `undo_remember`, `fallback`, `disabled_apps`, `auto_convert`,
+`keymap`, `layout`) va `%APPDATA%\bitg\exceptions.txt` (har qatorda bitta so'z).
 
 | Dastur turi | Holat |
 |---|---|
-| TSF'ni to'liq qo'llaydigan (WPF, UWP/WinUI, Word, Chrome'ning ko'p maydonlari) | ✅ ishlaydi (WPF'da avtomatik sinovdan o'tgan) |
-| Qt / eski IMM32 dasturlari (Telegram Desktop) | ✅ zaxira yo'l: bosilgan harflardan so'z yig'iladi, probeldan keyin Backspace + qayta yozish |
+| TSF'ni to'liq qo'llaydigan (WPF, UWP/WinUI, Word, Chrome'ning ko'p maydonlari) | ✅ ishlaydi (CI'da avtomatik e2e: WPF x64/x86, Win32 EDIT x64 — 36/36) |
+| Qt / eski IMM32 dasturlari (Telegram Desktop) | ⚠️ zaxira yo'l: bosilgan harflardan so'z yig'iladi, probeldan keyin Backspace + qayta yozish. **CI'da avtomatik sinov yo'q** — faqat qo'lda ([`docs/sinov-sozlar.md`](docs/sinov-sozlar.md)). Ma'lum muammolar pastda |
 | Terminallar (Termius, Windows Terminal, PuTTY...) | ⛔ standart holatda o'chiq (buyruq va parol yoziladi); oynadan yoqish mumkin |
+
+#### Telegram (zaxira yo'l): ma'lum muammolar
+
+| Belgi | Sabab | Holat |
+|---|---|---|
+| `öozbek`, `şshapaloq`, `qqo'l` — so'z o'girilib, darhol buzilib qaytadi (logda `converted` va shu soniyada `undo`) | bitg o'zi yuborgan Backspace'ni foydalanuvchiniki deb bildi va «bekor qilish»ni ishga tushirdi: Qt `dwExtraInfo` belgisini (RETYPE_TAG) TSF'ga yetkazmaydi | 2026-11-12 tuzatildi: belgiga qo'shimcha sanagich (`State::take_retype`, 1.5 s oyna). **Telegramda qo'lda tasdiqlanmagan** |
+| Birinchi so'z o'girilmaydi / `word not tracked` | sabab endi logda: `fallback: word not tracked: <sabab>` | log kutilmoqda |
+| Qotish | har tugma ishlovchisi ≥25 ms bo'lsa `slow test key / key down: N ms` | log kutilmoqda |
+
+Nega avtomatik sinab bo'lmaydi: Telegram sinovi uchun haqiqiy klaviatura bosishi (SendInput) kerak. Ishlab chiquvchi
+mashinasida global tugma yuborish taqiqlangan, u faqat CI VM'da (`GITHUB_ACTIONS=true`) ishlaydi. CI'da hozir faqat
+WPF va Win32 EDIT bor. Keyingi qadam: CI'ga Qt sinov ilovasini (IMM32 yo'li) qo'shish.
 
 `cargo run -p bitg-tsf --example activate` — profilni shu jarayonda yoqib, TSF nimani faol deb bilishini chiqaradi.
 
@@ -167,7 +210,9 @@ yoqilsa, bitg klaviaturasi tanlangan oynada tugma darhol yangi harfni yozadi:
 
 | Tartib | Nima o'zgaradi |
 |---|---|
-| Tilmoch (standart, [tilmoch.ai](https://tilmoch.ai/ru/terilmalar) asosida) | `[` ö, `]` ğ, `;` ş, `'` ç, `` ` `` ’; `\` → `;` `:`; qavslar va `;` `'` — AltGr bilan; `№` — AltGr+Shift+3 |
+| Tilmoch (standart, [tilmoch.ai](https://tilmoch.ai/ru/terilmalar) asosida) | `[` ö, `]` ğ, `;` ş, `'` ç, `` ` `` tutuq ʼ (U+02BC); `\` → `;` `:`; qavslar va `;` `'` — AltGr bilan; `№` — AltGr+Shift+3 |
+| [kiritish.uz](https://kiritish.uz/windows/) («Özbekça - yangi», MIT) | Tilmoch bilan deyarli bir xil: `[` ö, `]` ğ, `;` ş, `'` ç, `` ` `` ʼ, `\` → `;` `:`; AltGr+K/L — “ ” ‘ ’, AltGr+`-` — tire |
+| [TezYechim](https://tezyechim.uz/en) («Özbek lotin 2026») | `[` ç, `]` ö, `-` ğ, `=` ş; tutuq — o'ng Alt + `'`; `[ ] - =` o'ng Alt bilan |
 | Turkcha Q | `[` ğ, `]` ü, `;` ş, `'` i, `,` ö, `.` ç, `i` → ı; vergul `\`, nuqta `/` da |
 | Faqat AltGr | hech narsa ko'chmaydi: o'ng Alt + O G S C → ö ğ ş ç |
 | Kirill | Windows «O'zbek (kirill)» tartibi (`o` ў, `s` қ, `-` ғ, `=` ҳ); avto o'girish yoqiq bo'lsa kirillcha so'z probeldan keyin yangi lotinga o'tadi, o'chiq bo'lsa kirill qoladi |
@@ -180,8 +225,12 @@ sessiyasida yoziladi (eski IMM32 dasturlarida qisqa kompozitsiya bilan), AltGr q
 "preserved key". Ctrl/Alt/Win bilan tezkor tugmalar inglizcha joyida, o'chirilgan dasturlarda (terminallar)
 tugmalar o'zgarmaydi.
 
-**Backspace bilan bekor qilish:** so'z o'girilgandan keyin darhol Backspace bosilsa, asl so'z qaytadi va
-`exceptions.txt` ga qo'shiladi — keyingi safar o'girilmaydi (Sozlamalar → «Backspace bilan bekor qilish»).
+**Backspace bilan bekor qilish:** so'z o'girilgandan keyin darhol Backspace bosilsa, asl so'z qaytadi va shu
+dasturda boshqa o'girilmaydi. `exceptions.txt` ga doimiy yozish alohida sozlama — «Qaytarilgan so'zni istisnoga
+yozish» (`undo_remember`, standart holatda **o'chiq**). Istisnolar sahifasida qidirish va o'chirish bor.
+
+**Brendlar:** `crates/bitg-core/src/data/names.txt` — sh/ch li savdo belgilari (Photoshop, Chevrolet, Toshiba)
+o'zbek qo'shimchasi bilan ham o'girilmaydi. Kishi va joy nomlari ro'yxatda yo'q: ular o'zbek imlosida yoziladi.
 
 ## Lug'at
 
@@ -192,6 +241,9 @@ tugmalar o'zgarmaydi.
 
 Qayta qurish: `python -I tools/build_lexicon.py --scowl <dir> --leipzig <wiki-words.txt> --leipzig-cyrillic-only <community-words.txt>`
 
+Kengaytirish (ish jarayonida): ko'proq ochiq litsenziyali o'zbek manbalari (Leipzig'ning katta to'plamlari,
+Common Voice CC0, Tatoeba CC BY) — maqsad apostrofsiz matnda 69% dan yuqori, qolgan ikki o'lchov tushmasin.
+
 ## Yo'l xaritasi
 
 - [x] Phase 0a — yadro, CLI, inglizcha himoya, o'lchov
@@ -199,7 +251,19 @@ Qayta qurish: `python -I tools/build_lexicon.py --scowl <dir> --leipzig <wiki-wo
 - [ ] Phase 0b — Windows TSF IME prototipi (kod tayyor): qaysi dasturlarda ishlashini o'lchash (Chrome, Telegram, VS Code, Word)
 - [ ] MVP — imzolangan Windows beta: TSF IME + tray, Backspace bilan qaytarish, istisnolar
 - [ ] v1 — qonun kuchga kirishidan oldin (2027-aprel)
-- [ ] Android, iOS, macOS, Linux; Word/brauzer kengaytmasi; B2B API
+- [ ] **Linux (Ubuntu)** — IBus va Fcitx5 dvigateli (`bitg-core` C ABI orqali), `.deb` paket
+- [ ] **iOS** — klaviatura kengaytmasi (Keyboard Extension), yadro `staticlib` sifatida
+- [ ] macOS, Android; Word/brauzer kengaytmasi; B2B API
+- [x] Sayt: [bitg.dtwin.uz](https://bitg.dtwin.uz) (`web/`), sinov maydoni haqiqiy yadroda (Rust → WASM)
+
+## Telefonda (Android, iOS)
+
+bitg'ning telefon versiyasi hali yo'q. Hozircha telefonda yangi alifbo bilan ishlash uchun **Tilmoch** ilovasi
+yaxshi tanlov: tarjimon (16 til, ovozli rejim), turkiy tillar uchun moslangan —
+[App Store](https://apps.apple.com/uz/app/tilmoch/id6739621237) ·
+[Google Play](https://play.google.com/store/apps/details?id=com.tahrirchi.tilmoch) ·
+[tilmoch.ai](https://tilmoch.ai/ru/product/mobile). Tilmoch'ning yangi alifbo klaviatura tartibi (Windows, macOS)
+bitg'da `tilmoch` tartibi sifatida bor; ularning Android/iOS klaviaturasi «tez orada» deb e'lon qilingan.
 
 ## Litsenziya
 

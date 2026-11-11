@@ -448,8 +448,11 @@
             <span class="d">шаҳар → şahar. O'chirilsa, kirillcha so'zlar o'zgarmaydi.</span></span>
             <button class="sw" role="switch" data-k="cyrillic" aria-labelledby="l-cy"></button></div>
           <div class="row"><span><span class="t" id="l-ub">Backspace bilan bekor qilish</span>
-            <span class="d">So'z o'girilgandan keyin darhol Backspace — asl so'z qaytadi va istisnolarga qo'shiladi.</span></span>
+            <span class="d">So'z o'girilgandan keyin darhol Backspace — asl so'z qaytadi (shu dasturda boshqa o'girilmaydi).</span></span>
             <button class="sw" role="switch" data-k="undo_backspace" aria-labelledby="l-ub"></button></div>
+          <div class="row"><span><span class="t" id="l-ur">Qaytarilgan so'zni istisnoga yozish</span>
+            <span class="d">Backspace bilan qaytarilgan so'z «Istisnolar» ro'yxatiga doimiy qo'shiladi.</span></span>
+            <button class="sw" role="switch" data-k="undo_remember" aria-labelledby="l-ur"></button></div>
           <div class="row"><span><span class="t" id="l-tq">Tutuq belgisi</span>
             <span class="d">ma'no, san'at so'zlaridagi belgi. Standart — U+02BC.</span></span>
             <div class="seg" role="radiogroup" aria-labelledby="l-tq" id="tutuq">
@@ -498,6 +501,8 @@
           <h2 id="h-layout">Tartib</h2>
           <div class="seg" role="radiogroup" aria-labelledby="h-layout" id="layout">
             <button role="radio" data-v="tilmoch">Tilmoch</button>
+            <button role="radio" data-v="kiritish">kiritish.uz</button>
+            <button role="radio" data-v="tezyechim">TezYechim</button>
             <button role="radio" data-v="turkish">Turkcha Q</button>
             <button role="radio" data-v="altgr">Faqat AltGr</button>
             <button role="radio" data-v="kirill">Kirill</button>
@@ -837,7 +842,7 @@
   let justAdded = null;
   function renderEx() {
     const ul = $("exceptions"); ul.replaceChildren();
-    $("exFilter").hidden = ex.length < 8;
+    $("exFilter").hidden = ex.length === 0;
     const q = fold($("exFilter").value.trim());
     const items = ex.map((w, i) => [w, i]).filter(([w]) => !q || fold(w).includes(q));
     if (!ex.length) { const p = document.createElement("li"); p.className = "empty"; p.style.cssText = "border:0;background:none;padding:0;font-family:inherit;color:var(--kul)"; p.textContent = "Hozircha yo'q. Sinash sahifasida so'zni bosib ham qo'shish mumkin."; ul.append(p); return; }
@@ -966,7 +971,9 @@
   const CODE = { Backquote: "`", Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Backslash: "\\", Semicolon: ";", Quote: "'", Comma: ",", Period: ".", Slash: "/" };
   const codeKey = (c) => CODE[c] || (/^Key[A-Z]$/.test(c) ? c.slice(3).toLowerCase() : /^Digit\d$/.test(c) ? c.slice(5) : null);
   const LAYOUT_DESC = {
-    tilmoch: "tilmoch.ai tartibi: [ → ö, ] → ğ, ; → ş, ' → ç, ` → tutuq ’. Qavslar va ; ' : AltGr bilan, № — AltGr+Shift+3.",
+    tilmoch: "tilmoch.ai tartibi: [ → ö, ] → ğ, ; → ş, ' → ç, ` → tutuq ʼ. Qavslar va ; ' : AltGr bilan, № — AltGr+Shift+3.",
+    kiritish: "kiritish.uz tartibi: [ → ö, ] → ğ, ; → ş, ' → ç, ` → tutuq ʼ, ; va : — \\ tugmasida. AltGr+K/L — “ ” ‘ ’.",
+    tezyechim: "TezYechim tartibi: [ → ç, ] → ö, - → ğ, = → ş. Tutuq — o'ng Alt + '. Qavslar, - va = o'ng Alt bilan.",
     turkish: "Turkcha Q harflari: [ ğ, ] ü, ; ş, ' i, , ö, . ç, i tugmasida ı. Vergul \\ da, nuqta / da.",
     altgr: "Hech bir tugma ko'chmaydi: o'ng Alt + O G S C → ö ğ ş ç, o'ng Alt + ' → ʼ. Dasturchilar uchun qulay.",
     kirill: "Windows «O'zbek (kirill)» tartibi: o → ў, s → қ, - → ғ, = → ҳ. Kirillcha yozing — avto o'girish yoqiq bo'lsa so'z yangi lotinga o'tadi (шаҳар → şahar), o'chiq bo'lsa kirill qoladi. Qavslar AltGr bilan.",
@@ -1343,6 +1350,8 @@
   renderDir();
   go(store.get("bitg.page") || "home");
   send({ cmd: "load" });
+  // IME istisno qo'shgan bo'lishi mumkin (Backspace bilan qaytarish) — oynaga qaytganda ro'yxat yangilanadi.
+  window.addEventListener("focus", () => send({ cmd: "load" }));
 })();
 </script>
 </body>

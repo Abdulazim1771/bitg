@@ -4,44 +4,22 @@
 //! litsenziya), o'zbek qo'shimchalari bo'yicha o'zak qidirish va harf belgilari. Lug'atlar
 //! `tools/build_lexicon.py` bilan quriladi va binarga kiritiladi.
 
-use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use crate::chars::fold_key;
+use crate::lexicon::{EN, Lexicon, SPLIT, UZ};
 
-static UZ_TSV: &str = include_str!("data/uz.tsv");
-static EN_TSV: &str = include_str!("data/en.tsv");
-
-fn parse(tsv: &'static str) -> HashMap<&'static str, f32> {
-    let mut m = HashMap::with_capacity(tsv.len() / 10);
-    for line in tsv.lines() {
-        if line.starts_with('#') {
-            continue;
-        }
-        if let Some((w, s)) = line.split_once('\t')
-            && let Ok(v) = s.trim().parse::<f32>()
-        {
-            m.insert(w, v);
-        }
-    }
-    m
+// Lug'atlar qurish vaqtida tayyorlangan jadval (`build.rs`): yuklash va xotira ajratish yo'q.
+fn uz() -> &'static Lexicon {
+    &UZ
 }
 
-fn uz() -> &'static HashMap<&'static str, f32> {
-    static M: OnceLock<HashMap<&'static str, f32>> = OnceLock::new();
-    M.get_or_init(|| parse(UZ_TSV))
+fn en() -> &'static Lexicon {
+    &EN
 }
 
-fn en() -> &'static HashMap<&'static str, f32> {
-    static M: OnceLock<HashMap<&'static str, f32>> = OnceLock::new();
-    M.get_or_init(|| parse(EN_TSV))
-}
-
-static SPLIT_TSV: &str = include_str!("data/sh_split.tsv");
-
-fn split() -> &'static HashMap<&'static str, f32> {
-    static M: OnceLock<HashMap<&'static str, f32>> = OnceLock::new();
-    M.get_or_init(|| parse(SPLIT_TSV))
+fn split() -> &'static Lexicon {
+    &SPLIT
 }
 
 /// Kirillda s|h alohida bo'lgan so'z (Исҳоқ → Ishoq): yozuvdagi "sh" ş ga aylanmasligi kerak.
@@ -49,9 +27,44 @@ pub fn is_sh_split(word: &str) -> bool {
     split().contains_key(fold_key(word).as_str())
 }
 
+static NAMES_TXT: &str = include_str!("data/names.txt");
+
+fn names() -> &'static std::collections::HashSet<&'static str> {
+    static S: OnceLock<std::collections::HashSet<&'static str>> = OnceLock::new();
+    S.get_or_init(|| {
+        NAMES_TXT
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+            .collect()
+    })
+}
+
+/// Brend yoki mahsulot nomi (`data/names.txt`), o'zbek qo'shimchasi yoki apostrofli qo'shimcha bilan ham:
+/// Photoshop, Photoshopda, Chevrolet'ni.
+pub fn is_brand(word: &str) -> bool {
+    let lower = word.to_lowercase();
+    let base = lower
+        .split(|c: char| crate::chars::is_apostrophe(c))
+        .next()
+        .unwrap_or(&lower);
+    let set = names();
+    if set.contains(base) {
+        return true;
+    }
+    const SUFFIXES: &[&str] = &[
+        "larning", "larni", "larga", "larda", "lardan", "dagi", "ning", "dan", "lar", "dir", "da",
+        "ga", "ka", "ni", "ni", "ning", "imiz", "ingiz", "im", "ing", "i",
+    ];
+    SUFFIXES.iter().any(|s| {
+        base.strip_suffix(s)
+            .is_some_and(|stem| stem.chars().count() >= 4 && set.contains(stem))
+    })
+}
+
 /// Lug'atlarni oldindan yuklash (IME ishga tushganda, birinchi so'z kutib qolmasin).
 pub fn warm_up() {
-    let _ = uz().len() + en().len() + split().len();
+    let _ = uz().len() + en().len() + split().len() + names().len();
 }
 
 // Eski lotin yozuvidagi qo'shimchalar — uzunidan qisqasiga. Lug'atda yo'q so'zning o'zagini topish uchun.
@@ -125,7 +138,7 @@ const SUFFIXES: &[&str] = &[
 ];
 
 fn uz_weight(key: &str) -> Option<f32> {
-    if let Some(&w) = uz().get(key) {
+    if let Some(w) = uz().get(key) {
         return Some(w);
     }
     // O'zak + qo'shimcha: kitob|larimizdan. Ikki qatlamgacha.
@@ -135,14 +148,14 @@ fn uz_weight(key: &str) -> Option<f32> {
             if stem.chars().count() < 3 {
                 continue;
             }
-            if let Some(&w) = uz().get(stem) {
+            if let Some(w) = uz().get(stem) {
                 best = Some(best.map_or(w * 0.8, |b: f32| b.max(w * 0.8)));
                 continue;
             }
             for s2 in SUFFIXES {
                 if let Some(stem2) = stem.strip_suffix(s2)
                     && stem2.chars().count() >= 3
-                    && let Some(&w) = uz().get(stem2)
+                    && let Some(w) = uz().get(stem2)
                 {
                     best = Some(best.map_or(w * 0.6, |b: f32| b.max(w * 0.6)));
                 }
@@ -206,7 +219,7 @@ pub fn evidence(word: &str) -> f32 {
     if is_english_contraction(&key) {
         return -6.0;
     }
-    let en_w = en().get(key.as_str()).copied();
+    let en_w = en().get(key.as_str());
     let uz_w = uz_weight(&key).map(|w| w.min(UZ_EVIDENCE_CAP));
     // Apostrofli inglizcha so'z (o'clock, ma'am, rock'n'roll) — o'/tutuq bo'lsa ham o'zbekcha emas.
     if en_w.is_some() && uz_w.is_none() && key.contains('\'') {

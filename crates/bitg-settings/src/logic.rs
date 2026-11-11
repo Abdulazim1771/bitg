@@ -17,6 +17,7 @@ pub fn settings_json(c: &Config) -> Value {
         "tutuq": c.opts.tutuq.to_string(),
         "fallback": c.fallback,
         "undo_backspace": c.undo_backspace,
+        "undo_remember": c.undo_remember,
         "disabled_apps": c.disabled_apps,
         "auto_convert": c.auto_convert,
         "keymap": c.keymap,
@@ -79,6 +80,7 @@ pub fn config_from(settings: &Value, exceptions: &[String]) -> Config {
     c.opts.restore_apostrophes = b("restore_apostrophes", c.opts.restore_apostrophes);
     c.fallback = b("fallback", c.fallback);
     c.undo_backspace = b("undo_backspace", c.undo_backspace);
+    c.undo_remember = b("undo_remember", c.undo_remember);
     c.auto_convert = b("auto_convert", c.auto_convert);
     c.keymap = b("keymap", c.keymap);
     if let Some(l) = settings.get("layout").and_then(Value::as_str)

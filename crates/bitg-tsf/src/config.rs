@@ -7,6 +7,7 @@
 //! cyrillic=1
 //! tutuq=ʼ
 //! undo_backspace=1
+//! undo_remember=0
 //! fallback=1
 //! disabled_apps=termius.exe, windowsterminal.exe
 //! auto_convert=1
@@ -30,6 +31,8 @@ use crate::keymap::{self, Keymap};
 pub struct Config {
     pub enabled: bool,
     pub undo_backspace: bool,
+    /// Backspace bilan qaytarilgan so'z `exceptions.txt`ga ham yozilsinmi (standart: yo'q — faqat shu dasturda).
+    pub undo_remember: bool,
     pub fallback: bool,
     /// Kichik harflarda: "termius.exe".
     pub disabled_apps: Vec<String>,
@@ -77,6 +80,7 @@ impl Default for Config {
         Self {
             enabled: true,
             undo_backspace: true,
+            undo_remember: false,
             fallback: true,
             disabled_apps: DEFAULT_DISABLED_APPS
                 .iter()
@@ -122,6 +126,7 @@ pub fn parse(settings: &str, exceptions: &str) -> Config {
                 c.opts.restore_apostrophes = flag(v).unwrap_or(c.opts.restore_apostrophes)
             }
             "undo_backspace" => c.undo_backspace = flag(v).unwrap_or(c.undo_backspace),
+            "undo_remember" => c.undo_remember = flag(v).unwrap_or(c.undo_remember),
             "fallback" => c.fallback = flag(v).unwrap_or(c.fallback),
             "auto_convert" => c.auto_convert = flag(v).unwrap_or(c.auto_convert),
             "keymap" => c.keymap = flag(v).unwrap_or(c.keymap),
@@ -169,13 +174,14 @@ pub fn to_ini(c: &Config) -> String {
     format!(
         "# bitg sozlamalari. Sozlamalar oynasi yozadi; qo'lda tahrirlash ham mumkin.\n\
          enabled={}\nenglish_guard={}\ncyrillic={}\nrestore_apostrophes={}\ntutuq={}\n\
-         undo_backspace={}\nfallback={}\ndisabled_apps={}\nauto_convert={}\nkeymap={}\nlayout={}\n",
+         undo_backspace={}\nundo_remember={}\nfallback={}\ndisabled_apps={}\nauto_convert={}\nkeymap={}\nlayout={}\n",
         bit(c.enabled),
         bit(c.opts.english_guard),
         bit(c.opts.cyrillic),
         bit(c.opts.restore_apostrophes),
         c.opts.tutuq,
         bit(c.undo_backspace),
+        bit(c.undo_remember),
         bit(c.fallback),
         c.disabled_apps.join(", "),
         bit(c.auto_convert),

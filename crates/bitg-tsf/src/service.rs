@@ -47,8 +47,20 @@ use crate::typed::Typed;
 /// Kursor oldidan o'qiladigan eng ko'p UTF-16 birlik.
 const LOOKBACK: i32 = 64;
 const NO_COOKIE: u32 = u32::MAX;
-/// O'zimiz yuboradigan tugmalar belgisi (`dwExtraInfo`).
+/// Qayta yuborilgan foydalanuvchi tugmasi (`dwExtraInfo`): ikkinchi marta ushlanmaydi, lekin kuzatiladi.
 const INJECT_TAG: usize = 0xB17B;
+/// Zaxira yo'l tahriri (Backspace + yangi matn): so'z kuzatuviga umuman kirmaydi. Sanagich o'rniga belgi —
+/// dastur tugmalarimizdan birini TSF'dan o'tkazmasa ham, foydalanuvchining Backspace'i yutilib ketmaydi.
+const RETYPE_TAG: usize = 0xB17D;
+/// Tugma ishlovchisi bundan uzoq ishlasa — log (dastur "qotishi"ni topish uchun).
+const SLOW_KEY: Duration = Duration::from_millis(25);
+
+fn own_key() -> bool {
+    matches!(
+        unsafe { GetMessageExtraInfo() }.0 as usize,
+        INJECT_TAG | RETYPE_TAG
+    )
+}
 
 /// IMM32 kontekstida ushlangan tugma qanday qayta yuboriladi.
 enum Eat {
@@ -87,9 +99,6 @@ struct State {
     blind: bool,
     key_sink: bool,
     typed: Typed,
-    /// O'zimiz yuborgan tugmalar (Backspace / VK_PACKET) — ularni kuzatmaymiz.
-    injecting: u32,
-    inject_until: Option<Instant>,
     /// Faol klaviatura tartibi (yoqilgan va bo'sh emas).
     keymap: Option<Keymap>,
     /// Ro'yxatga olingan AltGr tugmalari va ular tartibga mos kelishi.
@@ -99,6 +108,47 @@ struct State {
     /// Yuborilgan, lekin hali qaytib kelmagan belgilarimiz (IMM32 kontekstida tartib uchun).
     queued: u32,
     queued_at: Option<Instant>,
+    /// Zaxira tahririmizdan hali kelmagan Backspace va Unicode tugmalar. Qt (Telegram) `dwExtraInfo`ni
+    /// TSF'ga yetkazmaydi — belgi o'qilmasa, shu sanagich o'z tugmamizni foydalanuvchinikidan ajratadi.
+    retype_back: u32,
+    retype_packet: u32,
+    retype_until: Option<Instant>,
+}
+
+/// Zaxira tahriri tugmalari shu vaqt ichida kelishi kerak; kelmasa sanagich tashlanadi.
+const RETYPE_WINDOW: Duration = Duration::from_millis(1500);
+
+impl State {
+    fn expect_retype(&mut self, backs: usize, packets: usize) {
+        self.retype_back += backs as u32;
+        self.retype_packet += packets as u32;
+        self.retype_until = Some(Instant::now() + RETYPE_WINDOW);
+    }
+
+    /// Bu tugma bizning zaxira tahririmizmi (belgi yoki sanagich bo'yicha).
+    fn take_retype(&mut self, vk: u16) -> bool {
+        if !self.retype_until.is_some_and(|t| Instant::now() < t) {
+            self.retype_back = 0;
+            self.retype_packet = 0;
+        }
+        let extra = unsafe { GetMessageExtraInfo() }.0 as usize;
+        if (extra as u64) >> 32 == REMAP_TAG {
+            return false; // klaviatura tartibi belgisi — so'zning davomi
+        }
+        let tagged = extra == RETYPE_TAG;
+        let counter = if vk == VK_BACK.0 {
+            &mut self.retype_back
+        } else if vk == VK_PACKET.0 {
+            &mut self.retype_packet
+        } else {
+            return tagged;
+        };
+        if *counter > 0 {
+            *counter -= 1;
+            return true;
+        }
+        tagged
+    }
 }
 
 impl Default for State {
@@ -118,14 +168,15 @@ impl Default for State {
             blind: true,
             key_sink: false,
             typed: Typed::default(),
-            injecting: 0,
-            inject_until: None,
             keymap: None,
             preserved: Vec::new(),
             keys_dirty: true,
             undo: None,
             queued: 0,
             queued_at: None,
+            retype_back: 0,
+            retype_packet: 0,
+            retype_until: None,
         }
     }
 }
@@ -459,17 +510,24 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
     /// TRUE faqat ushlanadigan tugmada (tartib belgisi yoki o'girishni bekor qiluvchi Backspace) —
     /// keyin TSF `OnKeyDown`ni chaqiradi. Qolgan hamma tugma kuzatiladi va dasturga boradi.
     fn OnTestKeyDown(&self, pic: Ref<'_, ITfContext>, w: WPARAM, l: LPARAM) -> Result<BOOL> {
+        let t0 = Instant::now();
         let eat = guard("key", || {
             if pic.is_null() {
                 // Matn maydoni emas (Explorer ro'yxati, o'yin): Backspace bu yerda boshqa ish qiladi — tegmaymiz.
-                self.state.borrow_mut().typed.lost();
+                self.state
+                    .borrow_mut()
+                    .typed
+                    .lost("key outside a text field");
                 return Ok(false);
             }
             self.sync_preserved();
             let (vk, l) = (w.0 as u16, l.0);
-            // O'zimiz qayta yuborgan tugma — dasturga o'tadi.
-            let resent = unsafe { GetMessageExtraInfo() }.0 as usize == INJECT_TAG;
-            if !resent
+            // Zaxira tahririmiz (Backspace + yangi so'z) — dasturga o'tadi, so'z kuzatuviga kirmaydi.
+            if self.state.borrow_mut().take_retype(vk) {
+                return Ok(false);
+            }
+            // O'zimiz yuborgan tugma — dasturga o'tadi.
+            if !own_key()
                 && let Ok(ctx) = pic.ok()
                 && (self.transitory_eat(ctx, vk, l).is_some()
                     || self.mapped(vk, l).is_some()
@@ -480,6 +538,7 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
             self.observe_key(vk, l);
             Ok(false)
         })?;
+        slow("test key", t0);
         Ok(eat.into())
     }
 
@@ -488,10 +547,11 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
     }
 
     fn OnKeyDown(&self, pic: Ref<'_, ITfContext>, w: WPARAM, l: LPARAM) -> Result<BOOL> {
+        let t0 = Instant::now();
         let eaten = guard("key down", || {
             let Ok(ctx) = pic.ok() else { return Ok(false) };
             let (vk, l) = (w.0 as u16, l.0);
-            if unsafe { GetMessageExtraInfo() }.0 as usize == INJECT_TAG {
+            if own_key() {
                 return Ok(false);
             }
             match self.transitory_eat(ctx, vk, l) {
@@ -520,6 +580,7 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
             }
             Ok(false)
         })?;
+        slow("key down", t0);
         Ok(eaten.into())
     }
 
@@ -755,6 +816,13 @@ impl TextService_Impl {
     }
 }
 
+fn slow(what: &str, t0: Instant) {
+    let ms = t0.elapsed();
+    if ms >= SLOW_KEY {
+        log::write(&format!("slow {what}: {} ms", ms.as_millis()));
+    }
+}
+
 fn held(vk: VIRTUAL_KEY) -> bool {
     let s = unsafe { GetKeyState(vk.0 as i32) };
     s < 0
@@ -784,6 +852,14 @@ fn key_char(vk: u16, lparam: isize) -> Option<char> {
 }
 
 fn key_input(vk: VIRTUAL_KEY, scan: u16, flags: KEYBD_EVENT_FLAGS) -> INPUT {
+    tagged_input(vk, scan, flags, INJECT_TAG)
+}
+
+fn retype_input(vk: VIRTUAL_KEY, scan: u16, flags: KEYBD_EVENT_FLAGS) -> INPUT {
+    tagged_input(vk, scan, flags, RETYPE_TAG)
+}
+
+fn tagged_input(vk: VIRTUAL_KEY, scan: u16, flags: KEYBD_EVENT_FLAGS, tag: usize) -> INPUT {
     INPUT {
         r#type: INPUT_KEYBOARD,
         Anonymous: INPUT_0 {
@@ -792,7 +868,7 @@ fn key_input(vk: VIRTUAL_KEY, scan: u16, flags: KEYBD_EVENT_FLAGS) -> INPUT {
                 wScan: scan,
                 dwFlags: flags,
                 time: 0,
-                dwExtraInfo: INJECT_TAG,
+                dwExtraInfo: tag,
             },
         },
     }
@@ -818,16 +894,9 @@ impl TextService_Impl {
                 return;
             }
         }
-        // O'zimiz yuborgan tugmalar.
-        if st.injecting > 0 {
-            if st.inject_until.is_some_and(|t| Instant::now() < t) {
-                if k == VK_BACK || k == VK_PACKET {
-                    st.injecting -= 1;
-                    return;
-                }
-            } else {
-                st.injecting = 0;
-            }
+        // Zaxira yo'l tahririmiz (o'chirish + qayta yozish) — so'z kuzatuviga kirmaydi.
+        if unsafe { GetMessageExtraInfo() }.0 as usize == RETYPE_TAG {
+            return;
         }
         // O'girishni bekor qilish faqat darhol keyingi Backspace bilan.
         if !matches!(k, VK_BACK | VK_SHIFT | VK_LSHIFT | VK_RSHIFT) {
@@ -844,11 +913,11 @@ impl TextService_Impl {
             if st.typed.is_empty() {
                 st.typed.boundary();
             } else {
-                st.typed.lost();
+                st.typed.lost("mouse click inside the word");
             }
         }
         if held(VK_CONTROL) || held(VK_MENU) || held(VK_LWIN) || held(VK_RWIN) {
-            st.typed.lost(); // Ctrl+V, Ctrl+Z, Alt+Tab ...
+            st.typed.lost("Ctrl, Alt or Win held"); // Ctrl+V, Ctrl+Z, Alt+Tab ...
             return;
         }
         match k {
@@ -860,9 +929,7 @@ impl TextService_Impl {
                 }
                 let Some(word) = word else {
                     if had_letters {
-                        log::write(
-                            "fallback: word not tracked (click, arrows or Ctrl inside the word)",
-                        );
+                        log::write(&format!("fallback: word not tracked: {}", st.typed.why()));
                     }
                     return;
                 };
@@ -871,10 +938,23 @@ impl TextService_Impl {
                 }
                 let st = &mut *st;
                 let Some(edit) = st.session.complete_word(&word, &st.cfg.opts) else {
-                    log::write("fallback: word unchanged");
+                    // Uzunlik va toifa — matnning o'zi logga yozilmaydi.
+                    log::write(&format!(
+                        "fallback: word unchanged (len {}{})",
+                        word.chars().count(),
+                        if is_known_exception(st, &word) {
+                            ", exception"
+                        } else {
+                            ""
+                        }
+                    ));
                     return;
                 };
-                if drop_and_retype(st, word.chars().count(), &edit.insert, true) {
+                if drop_and_retype(word.chars().count(), &edit.insert, true) {
+                    st.expect_retype(
+                        word.chars().count() + 1,
+                        edit.insert.encode_utf16().count() + 1,
+                    );
                     st.undo = Some(Undo {
                         original: word,
                         converted: edit.insert,
@@ -893,19 +973,20 @@ impl TextService_Impl {
                     return;
                 };
                 // Bu Backspace probelni o'chiradi; so'ng o'girilgan so'z o'rniga asli yoziladi.
-                if drop_and_retype(
-                    &mut st,
-                    u.converted.chars().count().saturating_sub(1),
-                    &u.original,
-                    false,
-                ) {
+                let back = u.converted.chars().count().saturating_sub(1);
+                if drop_and_retype(back, &u.original, false) {
+                    st.expect_retype(back + 1, u.original.encode_utf16().count());
                     drop(st);
                     self.remember_exception(&u.original);
                 }
             }
             VK_LEFT | VK_RIGHT | VK_UP | VK_DOWN | VK_HOME | VK_END | VK_PRIOR | VK_NEXT
-            | VK_DELETE | VK_ESCAPE | VK_PACKET => {
-                st.typed.lost();
+            | VK_DELETE | VK_ESCAPE => {
+                st.typed.lost("arrows, Home/End or Delete");
+                st.session.reset();
+            }
+            VK_PACKET => {
+                st.typed.lost("unicode key from another program");
                 st.session.reset();
             }
             _ => {
@@ -918,18 +999,29 @@ impl TextService_Impl {
     }
 }
 
-/// Bekor qilingan so'z keyin o'girilmasin: darhol xotirada va `exceptions.txt`da.
+fn is_known_exception(st: &State, word: &str) -> bool {
+    let core = bitg_core::token::split_edges(word).core;
+    st.cfg.opts.exceptions.contains(&fold_key(core))
+}
+
+/// Bekor qilingan so'z shu dasturda boshqa o'girilmaydi. Doimiy istisno (`exceptions.txt`) faqat
+/// `undo_remember=1` bo'lsa: bo'shliqni o'chirmoqchi bo'lgan bitta Backspace so'zni abadiy o'chirib qo'ymasin.
 fn remember_exception(state: &Rc<RefCell<State>>, original: &str) {
     let Ok(mut st) = state.try_borrow_mut() else {
         return;
     };
-    let k = fold_key(original);
+    let core = bitg_core::token::split_edges(original).core.to_string();
+    let k = fold_key(&core);
     if !st.cfg.opts.exceptions.contains(&k) {
-        st.cfg.opts.exceptions.push(k);
+        st.cfg.opts.exceptions.push(k.clone());
     }
     st.session.reset();
-    st.typed.lost();
-    match config::add_exception(original) {
+    st.typed.lost("undo");
+    if !st.cfg.undo_remember {
+        log::write("undo: restored (kept for this app only)");
+        return;
+    }
+    match config::add_exception(&core) {
         Ok(()) => log::write("undo: restored, added to exceptions"),
         Err(e) => log::write(&format!("undo: restored, exceptions write failed: {e}")),
     }
@@ -941,35 +1033,32 @@ fn remember_exception(state: &Rc<RefCell<State>>, original: &str) {
 fn plain_backspace(state: &Rc<RefCell<State>>) {
     log::write("undo: text changed, plain backspace");
     if let Ok(mut st) = state.try_borrow_mut() {
-        st.injecting += 1;
-        st.inject_until = Some(Instant::now() + Duration::from_millis(1500));
+        st.expect_retype(1, 0);
     }
     let inputs = [
-        key_input(VK_BACK, 0, KEYBD_EVENT_FLAGS(0)),
-        key_input(VK_BACK, 0, KEYEVENTF_KEYUP),
+        retype_input(VK_BACK, 0, KEYBD_EVENT_FLAGS(0)),
+        retype_input(VK_BACK, 0, KEYEVENTF_KEYUP),
     ];
     unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
 }
 
 /// Bosilgan tugma (probel yoki Backspace) navbatda bizdan oldin turibdi: u ishlagach `back` ta
 /// Backspace + 1 va yangi matn (+ probel) yuboriladi.
-fn drop_and_retype(st: &mut State, back: usize, insert: &str, space: bool) -> bool {
+fn drop_and_retype(back: usize, insert: &str, space: bool) -> bool {
     let mut inputs = Vec::new();
     for _ in 0..=back {
-        inputs.push(key_input(VK_BACK, 0, KEYBD_EVENT_FLAGS(0)));
-        inputs.push(key_input(VK_BACK, 0, KEYEVENTF_KEYUP));
+        inputs.push(retype_input(VK_BACK, 0, KEYBD_EVENT_FLAGS(0)));
+        inputs.push(retype_input(VK_BACK, 0, KEYEVENTF_KEYUP));
     }
     let units: Vec<u16> = insert.encode_utf16().chain(space.then_some(0x20)).collect();
     for &u in &units {
-        inputs.push(key_input(VIRTUAL_KEY(0), u, KEYEVENTF_UNICODE));
-        inputs.push(key_input(
+        inputs.push(retype_input(VIRTUAL_KEY(0), u, KEYEVENTF_UNICODE));
+        inputs.push(retype_input(
             VIRTUAL_KEY(0),
             u,
             KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
         ));
     }
-    st.injecting = (back + 1 + units.len()) as u32;
-    st.inject_until = Some(Instant::now() + Duration::from_millis(1500));
     let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) } as usize;
     if sent == inputs.len() {
         log::write(if space {
@@ -979,7 +1068,6 @@ fn drop_and_retype(st: &mut State, back: usize, insert: &str, space: bool) -> bo
         });
         true
     } else {
-        st.injecting = 0;
         log::write(&format!("fallback: SendInput sent {sent}/{}", inputs.len()));
         false
     }

@@ -10,6 +10,8 @@ pub struct Typed {
     word: Vec<char>,
     /// So'z boshi ko'rilgan (chegaradan keyin boshlangan) va oraliqda shubhali hodisa bo'lmagan.
     trusted: bool,
+    /// Ishonch nega yo'qoldi (log uchun, matnsiz).
+    why: &'static str,
 }
 
 impl Typed {
@@ -17,17 +19,20 @@ impl Typed {
     pub fn boundary(&mut self) {
         self.word.clear();
         self.trusted = true;
+        self.why = "";
     }
 
     /// Navigatsiya, sichqoncha, Ctrl+V, noma'lum belgi: kursor qayerdaligini endi bilmaymiz.
-    pub fn lost(&mut self) {
+    pub fn lost(&mut self, why: &'static str) {
         self.word.clear();
         self.trusted = false;
+        self.why = why;
     }
 
     pub fn push(&mut self, c: char) {
         if self.word.len() >= MAX {
             self.trusted = false;
+            self.why = "word too long";
         }
         self.word.push(c);
     }
@@ -36,7 +41,21 @@ impl Typed {
         if self.word.pop().is_none() {
             // so'zdan oldingi matn o'chirilmoqda — keyingi so'z boshi noma'lum
             self.trusted = false;
+            self.why = "backspace past word start";
         }
+    }
+
+    /// Oxirgi `finish` so'zni nega bermadi (bo'sh bo'lsa — sabab yo'q).
+    pub fn why(&self) -> &'static str {
+        if self.why.is_empty() {
+            "no word start seen"
+        } else {
+            self.why
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.word.len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -62,7 +81,13 @@ impl Typed {
     pub fn finish(&mut self) -> Option<String> {
         let w = (self.trusted && !self.word.is_empty() && self.word.len() <= MAX)
             .then(|| self.word.iter().collect());
-        self.boundary();
+        if w.is_some() {
+            self.boundary();
+        } else {
+            // sabab log uchun saqlanadi; keyingi so'z yana ishonchli
+            self.word.clear();
+            self.trusted = true;
+        }
         w
     }
 }
@@ -97,7 +122,7 @@ mod tests {
     #[test]
     fn untrusted_after_navigation_or_deleting_past_start() {
         let mut t = typed("ch");
-        t.lost();
+        t.lost("test");
         "oy".chars().for_each(|c| t.push(c));
         assert_eq!(t.finish(), None);
 

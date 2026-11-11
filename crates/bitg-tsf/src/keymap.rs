@@ -70,7 +70,14 @@ pub const REMAP_TAG: u64 = 0xB17C;
 const SLOTS: usize = 0x60;
 
 /// Tayyor tartiblar.
-pub const PRESETS: &[&str] = &["tilmoch", "turkish", "altgr", "kirill"];
+pub const PRESETS: &[&str] = &[
+    "tilmoch",
+    "kiritish",
+    "tezyechim",
+    "turkish",
+    "altgr",
+    "kirill",
+];
 pub const DEFAULT_LAYOUT: &str = "tilmoch";
 pub const CUSTOM: &str = "custom";
 
@@ -216,9 +223,10 @@ impl Keymap {
 pub fn preset(name: &str) -> Option<Keymap> {
     Some(match name {
         // tilmoch.ai/terilmalar: ö ğ ş ç kvadrat qavs, nuqta-vergul va apostrof joyida, tutuq ` tugmasida.
+        // Tutuq — qonundagi ʼ (U+02BC), o'girish natijasi bilan bir xil (’ U+2019 tirnoq, tutuq emas).
         // AltGr+Shift'dagi { } " ` | \ — dasturchi belgilari yo'qolmasin deb qo'shilgan.
         "tilmoch" => Keymap::with(&[
-            ("`", ["’", "\"", "‘", "`"]),
+            ("`", ["ʼ", "\"", "‘", "`"]),
             ("3", ["-", "-", "-", "№"]),
             ("9", ["-", "-", "‘", "-"]),
             ("0", ["-", "-", "’", "-"]),
@@ -230,6 +238,28 @@ pub fn preset(name: &str) -> Option<Keymap> {
             ("'", ["ç", "Ç", "'", "\""]),
             (",", [",", "“", "<", "«"]),
             (".", [".", "”", ">", "»"]),
+        ]),
+        // kiritish.uz "Özbekça - yangi" (new-uzb.klc, v1.0, MIT): Tilmoch'ga yaqin; AltGr+K/L — “ ” va ‘ ’.
+        // AltGr+; va AltGr+Shift+' manbada bo'sh — dasturchi belgilari uchun qo'shilgan.
+        "kiritish" => Keymap::with(&[
+            ("`", ["ʼ", "\"", "`", "~"]),
+            ("-", ["-", "-", "—", "–"]),
+            ("[", ["ö", "Ö", "[", "{"]),
+            ("]", ["ğ", "Ğ", "]", "}"]),
+            ("\\", [";", ":", "\\", "|"]),
+            (";", ["ş", "Ş", ";", ":"]),
+            ("'", ["ç", "Ç", "'", "\""]),
+            ("k", ["-", "-", "“", "‘"]),
+            ("l", ["-", "-", "”", "’"]),
+        ]),
+        // tezyechim.uz "Özbek lotin 2026": [ ç, ] ö, - ğ, = ş, tutuq — o'ng Alt + '.
+        // Ko'chgan [ ] - = belgilari AltGr'da (manba aniq qatlamni aytmaydi — US tartibidagidek qo'yilgan).
+        "tezyechim" => Keymap::with(&[
+            ("[", ["ç", "Ç", "[", "{"]),
+            ("]", ["ö", "Ö", "]", "}"]),
+            ("-", ["ğ", "Ğ", "U+002D", "_"]),
+            ("=", ["ş", "Ş", "=", "+"]),
+            ("'", ["-", "-", "ʼ", "\""]),
         ]),
         // Turkcha Q harflari US tugmalarida; joyidan ko'chgan belgilar AltGr'da.
         "turkish" => Keymap::with(&[
@@ -357,7 +387,7 @@ mod tests {
         assert_eq!(m.lookup(QUOTE, false, false, false), Some('ç'));
         assert_eq!(
             m.lookup(scan_of("`").unwrap(), false, false, false),
-            Some('’')
+            Some('ʼ')
         );
         // A–Z o'zgarmaydi.
         assert_eq!(m.lookup(scan_of("a").unwrap(), false, false, false), None);
@@ -435,6 +465,24 @@ mod tests {
         assert_eq!(m.lookup(k("/"), true, false, false), Some(','));
         assert_eq!(m.lookup(LBR, false, false, true), Some('['));
         assert_eq!(m.lookup(LBR, false, false, false), Some('х'));
+    }
+
+    #[test]
+    fn competitor_layouts_match_their_published_tables() {
+        let k = |l: &str| scan_of(l).unwrap();
+        let ki = preset("kiritish").unwrap();
+        assert_eq!(ki.lookup(LBR, false, false, false), Some('ö'));
+        assert_eq!(ki.lookup(k(";"), true, false, false), Some('Ş'));
+        assert_eq!(ki.lookup(k("`"), false, false, false), Some('ʼ'));
+        assert_eq!(ki.lookup(k("l"), false, false, true), Some('”'));
+        let tz = preset("tezyechim").unwrap();
+        assert_eq!(tz.lookup(LBR, false, false, false), Some('ç'));
+        assert_eq!(tz.lookup(k("="), true, false, false), Some('Ş'));
+        assert_eq!(tz.lookup(k("-"), false, false, true), Some('-'));
+        assert_eq!(tz.lookup(QUOTE, false, false, true), Some('ʼ'));
+        // Tutuq hamma tartibda o'girish natijasi bilan bir xil: ʼ (U+02BC).
+        let ti = preset("tilmoch").unwrap();
+        assert_eq!(ti.lookup(k("`"), false, false, false), Some('\u{2BC}'));
     }
 
     #[test]
