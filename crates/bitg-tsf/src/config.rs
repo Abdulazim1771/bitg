@@ -7,7 +7,13 @@
 //! cyrillic=1
 //! tutuq=ʼ
 //! undo_backspace=1
+//! fallback=1
+//! disabled_apps=termius.exe, windowsterminal.exe
 //! ```
+//!
+//! `fallback` — matnni TSF'ga bermaydigan dasturlar (Telegram Desktop): bosilgan harflar kuzatiladi va so'z
+//! Backspace + qayta yozish bilan almashtiriladi. `disabled_apps` — bitg umuman ishlamaydigan dasturlar
+//! (standart: terminallar, chunki u yerda parol va buyruqlar yoziladi). Bo'sh qiymat = hamma joyda.
 
 use bitg_core::Options;
 use bitg_core::chars::fold_key;
@@ -16,7 +22,31 @@ use bitg_core::chars::fold_key;
 pub struct Config {
     pub enabled: bool,
     pub undo_backspace: bool,
+    pub fallback: bool,
+    /// Kichik harflarda: "termius.exe".
+    pub disabled_apps: Vec<String>,
     pub opts: Options,
+}
+
+/// Terminallar: buyruq va parol yoziladi — standart holatda tegilmaydi.
+pub const DEFAULT_DISABLED_APPS: &[&str] = &[
+    "termius.exe",
+    "windowsterminal.exe",
+    "openconsole.exe",
+    "conhost.exe",
+    "putty.exe",
+    "kitty.exe",
+    "mintty.exe",
+    "alacritty.exe",
+    "wezterm-gui.exe",
+    "mobaxterm.exe",
+];
+
+impl Config {
+    pub fn app_disabled(&self, exe: &str) -> bool {
+        let exe = exe.to_lowercase();
+        self.disabled_apps.contains(&exe)
+    }
 }
 
 impl Default for Config {
@@ -24,6 +54,11 @@ impl Default for Config {
         Self {
             enabled: true,
             undo_backspace: true,
+            fallback: true,
+            disabled_apps: DEFAULT_DISABLED_APPS
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
             opts: Options::default(),
         }
     }
@@ -58,6 +93,14 @@ pub fn parse(settings: &str, exceptions: &str) -> Config {
             "english_guard" => c.opts.english_guard = flag(v).unwrap_or(c.opts.english_guard),
             "cyrillic" => c.opts.cyrillic = flag(v).unwrap_or(c.opts.cyrillic),
             "undo_backspace" => c.undo_backspace = flag(v).unwrap_or(c.undo_backspace),
+            "fallback" => c.fallback = flag(v).unwrap_or(c.fallback),
+            "disabled_apps" => {
+                c.disabled_apps = v
+                    .split([',', ';'])
+                    .map(|a| a.trim().to_lowercase())
+                    .filter(|a| !a.is_empty())
+                    .collect();
+            }
             "tutuq" => {
                 let mut it = v.trim().chars();
                 if let (Some(ch), None) = (it.next(), it.next()) {
@@ -115,6 +158,20 @@ mod tests {
             c.opts.exceptions,
             vec!["shoh".to_string(), "o'zbekcha".to_string()]
         );
+    }
+
+    #[test]
+    fn disabled_apps_default_and_override() {
+        let c = parse("", "");
+        assert!(c.app_disabled("Termius.exe") && !c.app_disabled("Telegram.exe"));
+        let c = parse(
+            "disabled_apps=
+fallback=0",
+            "",
+        );
+        assert!(!c.app_disabled("Termius.exe") && !c.fallback);
+        let c = parse("disabled_apps = Foo.exe; bar.exe", "");
+        assert!(c.app_disabled("foo.EXE") && c.app_disabled("bar.exe"));
     }
 
     #[test]
