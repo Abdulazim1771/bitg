@@ -12,12 +12,17 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "installer" / "assets"
 ICON = ROOT / "crates" / "bitg-settings" / "assets" / "bitg.png"
+# Yangi logo (site/logo/build.py): to'q plitkada plitkasiz belgi.
+MARK = ROOT / "site" / "logo" / "png" / "bitg-mark-white-1024.png"
 FONT = Path("C:/Windows/Fonts/bahnschrift.ttf")
 
-LAPIS = (42, 75, 176)
-LAPIS_DEEP = (27, 50, 128)
-FIRUZA = (12, 132, 117)
-PAPER = (247, 248, 245)
+# Brend: INK #1b1e26, IVORY #f3efe7, BLUE #8fb0ea (to'q fonda), BLUE_DEEP #2f62c0 (och fonda).
+LAPIS = (34, 38, 48)  # panel yuqorisi
+LAPIS_DEEP = (27, 30, 38)  # panel pasti = INK
+GHOST = (44, 49, 62)
+FIRUZA = (143, 176, 234)  # panel cheti = BLUE
+IVORY = (243, 239, 231)
+PAPER = (247, 245, 240)
 SCALE = 4  # katta chizib, keyin kichraytiramiz
 
 
@@ -42,12 +47,12 @@ def dialog() -> Image.Image:
     # Fonda yangi harflar — xira, katta.
     ghost = font(74, 700)
     for ch, x, y in (("Ö", 16, 26), ("Ğ", 88, 26), ("Ş", 16, 104), ("Ç", 88, 104)):
-        d.text((x * SCALE, y * SCALE), ch, font=ghost, fill=(52, 86, 186))
-    # Ikonka va so'z belgisi.
-    icon = Image.open(ICON).convert("RGBA").resize((56 * SCALE, 56 * SCALE), Image.LANCZOS)
-    im.paste(icon, (22 * SCALE, 196 * SCALE), icon)
-    d.text((22 * SCALE, 258 * SCALE), "bitg", font=font(26, 700), fill="white")
-    d.text((23 * SCALE, 290 * SCALE), "2026 alifbosi", font=font(9.5, 400), fill=(196, 210, 245))
+        d.text((x * SCALE, y * SCALE), ch, font=ghost, fill=GHOST)
+    # Belgi va so'z belgisi.
+    icon = Image.open(MARK).convert("RGBA").resize((64 * SCALE, 64 * SCALE), Image.LANCZOS)
+    im.paste(icon, (14 * SCALE, 190 * SCALE), icon)
+    d.text((22 * SCALE, 258 * SCALE), "bitg", font=font(26, 700), fill=IVORY)
+    d.text((23 * SCALE, 290 * SCALE), "2026 alifbosi", font=font(9.5, 400), fill=FIRUZA)
     # Panel cheti: firuza chiziq.
     d.rectangle((panel - 3 * SCALE, 0, panel, h), fill=FIRUZA)
     return im.resize((493, 312), Image.LANCZOS)
@@ -59,7 +64,7 @@ def banner() -> Image.Image:
     d = ImageDraw.Draw(im)
     icon = Image.open(ICON).convert("RGBA").resize((40 * SCALE, 40 * SCALE), Image.LANCZOS)
     im.paste(icon, (w - 50 * SCALE, 9 * SCALE), icon)
-    d.rectangle((0, h - 2 * SCALE, w, h), fill=FIRUZA)
+    d.rectangle((0, h - 2 * SCALE, w, h), fill=(47, 98, 192))  # BLUE_DEEP: och fonda
     return im.resize((493, 58), Image.LANCZOS)
 
 
