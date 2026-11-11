@@ -1,0 +1,6 @@
+/target
+/eval/out
+*.pfx
+*.pdb
+.vs/
+.idea/

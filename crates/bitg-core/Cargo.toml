@@ -1,0 +1,17 @@
+[package]
+name = "bitg-core"
+description = "Uzbek Latin to the 2026 alphabet (ö ğ ş ç ʼ) conversion engine: rules, Cyrillic, reverse and an English guard"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords = ["uzbek", "transliteration", "alphabet", "keyboard", "ime"]
+categories = ["text-processing", "internationalization"]
+
+[lib]
+crate-type = ["rlib", "cdylib", "staticlib"]
+
+[dependencies]
