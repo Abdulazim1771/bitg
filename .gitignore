@@ -7,3 +7,6 @@
 /installer/bin
 /installer/obj
 /dist
+/tmp
+/docs/brand
+/tools/make_brand_teaser.ps1
