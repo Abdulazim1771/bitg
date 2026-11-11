@@ -155,8 +155,15 @@ fn english_blocks(core: &str, own: f32, ctx: f32) -> bool {
         // o'/g' yoki tutuq — o'zbekcha belgi; faqat aniq inglizcha so'z (o'clock) yoki qisqartma to'xtatadi.
         return own <= -5.0;
     }
+    // Keng tarqalgan inglizcha so'z, o'zbek lug'atida yo'q (check, shop, chat with) — o'zbekcha gap ichida ham.
+    if own <= STRONG_ENGLISH && !lang::known(core).0 {
+        return true;
+    }
     own + CONTEXT_WEIGHT * ctx < 0.0
 }
+
+/// SCOWL 10/20 darajasidagi (eng ko'p uchraydigan) inglizcha so'zning dalili.
+const STRONG_ENGLISH: f32 = -3.0;
 
 /// Bitta tokenni o'giradi (kontekst bilan). `quote_open` — oldingi so'zlarda ochilgan tirnoq ('Yaxshi tong').
 fn convert_token(

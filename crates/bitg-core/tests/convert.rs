@@ -23,6 +23,14 @@ fn uzbek_sentences() {
 }
 
 #[test]
+fn common_english_word_inside_uzbek_sentence_is_kept() {
+    assert_eq!(
+        c("salom choy o'zbek check, keyin shahar"),
+        "salom çoy özbek check, keyin şahar"
+    );
+}
+
+#[test]
 fn initials_and_abbreviations_convert() {
     assert_eq!(c("A.Lukashenko va Sh.Sharipov"), "A.Lukaşenko va Ş.Şaripov");
     assert_eq!(c("M.Jo'rayev, O'zA, O'zR"), "M.Jörayev, ÖzA, ÖzR");
@@ -59,9 +67,12 @@ fn english_words_and_sentences_are_kept() {
 fn mixed_language_text() {
     assert_eq!(c("Thanks! Bugun choy ichdik"), "Thanks! Bugun çoy içdik");
     assert_eq!(c("please qo'shiq ayt"), "please qöşiq ayt");
+    // chap: yolg'iz — noaniq (inglizcha "chap" ham bor), o'zbekcha kontekstda o'giriladi
+    assert_eq!(c("Menga chap tomonda"), "Menga çap tomonda");
+    // chat: o'zbek korpusida deyarli yo'q, inglizchada keng tarqalgan — tegilmaydi
     assert_eq!(
         c("Menga chat yozing, shahar markazida"),
-        "Menga çat yozing, şahar markazida"
+        "Menga chat yozing, şahar markazida"
     );
 }
 
@@ -149,9 +160,9 @@ fn session_typing() {
     let mut uz = Session::new();
     uz.complete_word("Menga", &o);
     let e = uz
-        .complete_word("chat", &o)
-        .expect("o'zbekcha kontekstda chat o'giriladi");
-    assert_eq!((e.delete, e.insert.as_str()), (4, "çat"));
+        .complete_word("chap", &o)
+        .expect("o'zbekcha kontekstda chap o'giriladi");
+    assert_eq!((e.delete, e.insert.as_str()), (4, "çap"));
 }
 
 #[test]

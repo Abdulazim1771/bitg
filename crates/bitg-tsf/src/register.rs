@@ -22,6 +22,8 @@ use crate::exports::{CLSID_BITG, DLL_INSTANCE, PROFILE_BITG};
 /// O'zbek (lotin, O'zbekiston): uz-Latn-UZ.
 const LANGID_UZ_LATN: u16 = 0x0443;
 const NAME: &str = "bitg";
+/// "00000409" — US klaviatura tartibi.
+const US_LAYOUT: isize = 0x0409_0409;
 
 const CATEGORIES: [GUID; 4] = [
     GUID_TFCAT_TIP_KEYBOARD,
@@ -95,7 +97,8 @@ pub fn register() -> Result<()> {
             &desc,
             &icon,
             0,
-            HKL::default(),
+            // Harflar odatdagi US (QWERTY) tartibidan keladi; o'zbek tilining standart kirill tartibi emas.
+            HKL(US_LAYOUT as *mut _),
             0,
             true,
             0,

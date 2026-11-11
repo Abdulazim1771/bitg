@@ -11,6 +11,7 @@
 // LNK4104: COM eksportlari PRIVATE emas — regsvr32 uchun zararsiz.
 #![allow(linker_messages)]
 
+pub mod config;
 pub mod plan;
 
 #[cfg(windows)]
@@ -69,6 +70,7 @@ mod exports {
             if outer.is_some() {
                 return Err(windows::Win32::Foundation::CLASS_E_NOAGGREGATION.into());
             }
+            crate::log::write("create instance");
             let unknown: IUnknown = TextService::new().into();
             unsafe { unknown.query(iid, object).ok() }
         }
@@ -93,6 +95,7 @@ mod exports {
         if unsafe { *clsid } != CLSID_BITG {
             return CLASS_E_CLASSNOTAVAILABLE;
         }
+        crate::log::write("get class object");
         let factory: IClassFactory = Factory.into();
         unsafe { factory.query(iid, out) }
     }
