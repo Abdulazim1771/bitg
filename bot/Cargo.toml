@@ -1,0 +1,23 @@
+[package]
+name = "bitg-bot"
+description = "@bitguzbot: Telegram bot that converts Uzbek text to the 2026 alphabet with bitg-core"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+publish = false
+
+# Asosiy workspace'ga a'zo emas: bot alohida yig'iladi va serverda Docker ichida quriladi.
+[workspace]
+
+[dependencies]
+bitg-core = { path = "../crates/bitg-core" }
+serde_json = "1"
+ureq = { version = "2.12", features = ["json"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+panic = "unwind"
+strip = true
+opt-level = 3
