@@ -56,12 +56,12 @@ flowchart LR
   core["bitg-core<br/>(Rust, bog'liqliksiz)"]
   cli["bitg CLI"]
   tsf["Windows TSF IME<br/>(prototip)"]
-  tray["Tray / sozlamalar<br/>(reja)"]
+  tray["Sozlamalar oynasi<br/>(WebView2)"]
   mob["Android / iOS klaviatura<br/>(reja)"]
   web["Web / WASM<br/>(reja)"]
   core --> cli
   core -- "C ABI (ffi.rs)" --> tsf
-  core -- "C ABI" --> tray
+  core --> tray
   core -- "UniFFI" --> mob
   core --> web
 ```
@@ -70,6 +70,7 @@ flowchart LR
 |---|---|
 | [`bitg-core`](crates/bitg-core) | qoidalar (`latin`), kirill (`cyrillic`), teskari (`reverse`), tokenlar (`token`), til dalili (`lang`), yozish sessiyasi (`Session`), C ABI (`ffi`) |
 | [`bitg-cli`](crates/bitg-cli) | `bitg convert / old / explain / eval` |
+| [`bitg-settings`](crates/bitg-settings) | sozlamalar oynasi: kalitlar, ro'yxatlar, jonli namuna (Windows, WebView2) |
 | [`bitg-tsf`](crates/bitg-tsf) | Windows matn kiritish xizmati (TSF TIP, Rust): tugmalarga tegmaydi — matn o'zgarishini kuzatadi (`ITfTextEditSink`) va so'zdan keyin probel yozilganda o'sha so'zni joyida almashtiradi. Hook, SendInput, clipboard yo'q |
 
 ### Windows IME prototipini sinash
@@ -85,13 +86,19 @@ regsvr32 target\release\bitg_tsf.dll
 Log: `%LOCALAPPDATA%\bitg\tsf.log` — faqat dastur nomi va natija (`converted`, `word unchanged`, xato kodi);
 yozilgan matn hech qachon saqlanmaydi.
 
-Sozlamalar (ixtiyoriy): `%APPDATA%\bitg\settings.ini` (`enabled`, `english_guard`, `cyrillic`, `tutuq`) va
-`%APPDATA%\bitg\exceptions.txt` (o'girilmaydigan so'zlar, har qatorda bittadan).
+**Sozlamalar oynasi** — `bitg-settings.exe` ([`crates/bitg-settings`](crates/bitg-settings), WebView2): yoqish/o'chirish,
+inglizcha himoya, apostrof tiklash, kirill, tutuq belgisi, ishlamaydigan dasturlar va istisnolar ro'yxati, hamda
+IME bilan bir xil yadrodagi jonli namuna (o'zgargan harflar ajratib ko'rsatiladi, so'zni bosib istisnoga qo'shish).
+O'zgarishlar darhol saqlanadi; IME ularni bir soniya ichida, dasturlarni qayta ochmasdan qabul qiladi.
+
+Fayllar (qo'lda tahrirlash ham mumkin): `%APPDATA%\bitg\settings.ini` (`enabled`, `english_guard`, `cyrillic`,
+`restore_apostrophes`, `tutuq`, `fallback`, `disabled_apps`) va `%APPDATA%\bitg\exceptions.txt` (har qatorda bitta so'z).
 
 | Dastur turi | Holat |
 |---|---|
 | TSF'ni to'liq qo'llaydigan (WPF, UWP/WinUI, Word, Chrome'ning ko'p maydonlari) | ✅ ishlaydi (WPF'da avtomatik sinovdan o'tgan) |
-| Qt / eski IMM32 dasturlari (Telegram Desktop) | ⚠️ dastur kursor oldidagi matnni TSF'ga bermaydi — bitg hech narsa qilmaydi (buzmaydi); boshqa yo'l kerak |
+| Qt / eski IMM32 dasturlari (Telegram Desktop) | ✅ zaxira yo'l: bosilgan harflardan so'z yig'iladi, probeldan keyin Backspace + qayta yozish |
+| Terminallar (Termius, Windows Terminal, PuTTY...) | ⛔ standart holatda o'chiq (buyruq va parol yoziladi); oynadan yoqish mumkin |
 
 `cargo run -p bitg-tsf --example activate` — profilni shu jarayonda yoqib, TSF nimani faol deb bilishini chiqaradi.
 

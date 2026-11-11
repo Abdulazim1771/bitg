@@ -126,15 +126,60 @@ pub fn parse(settings: &str, exceptions: &str) -> Config {
     c
 }
 
+fn bit(b: bool) -> &'static str {
+    if b { "1" } else { "0" }
+}
+
+/// `parse` ning teskarisi: sozlamalar oynasi shu matnni yozadi (istisnolar alohida faylda).
+pub fn to_ini(c: &Config) -> String {
+    format!(
+        "# bitg sozlamalari. Sozlamalar oynasi yozadi; qo'lda tahrirlash ham mumkin.\n\
+         enabled={}\nenglish_guard={}\ncyrillic={}\nrestore_apostrophes={}\ntutuq={}\n\
+         undo_backspace={}\nfallback={}\ndisabled_apps={}\n",
+        bit(c.enabled),
+        bit(c.opts.english_guard),
+        bit(c.opts.cyrillic),
+        bit(c.opts.restore_apostrophes),
+        c.opts.tutuq,
+        bit(c.undo_backspace),
+        bit(c.fallback),
+        c.disabled_apps.join(", "),
+    )
+}
+
+/// `%APPDATA%\bitg`.
+pub fn dir() -> Option<std::path::PathBuf> {
+    std::env::var_os("APPDATA").map(|b| std::path::PathBuf::from(b).join("bitg"))
+}
+
+pub const SETTINGS_FILE: &str = "settings.ini";
+pub const EXCEPTIONS_FILE: &str = "exceptions.txt";
+
+/// Ikkala fayl matni (yo'q bo'lsa — bo'sh).
+pub fn read_raw() -> (String, String) {
+    let Some(dir) = dir() else {
+        return Default::default();
+    };
+    let s = std::fs::read_to_string(dir.join(SETTINGS_FILE)).unwrap_or_default();
+    let e = std::fs::read_to_string(dir.join(EXCEPTIONS_FILE)).unwrap_or_default();
+    (s, e)
+}
+
 /// Diskdan o'qish (Windows: %APPDATA%\bitg). Xato — standart.
 pub fn load() -> Config {
-    let Some(base) = std::env::var_os("APPDATA") else {
-        return Config::default();
-    };
-    let dir = std::path::PathBuf::from(base).join("bitg");
-    let s = std::fs::read_to_string(dir.join("settings.ini")).unwrap_or_default();
-    let e = std::fs::read_to_string(dir.join("exceptions.txt")).unwrap_or_default();
+    let (s, e) = read_raw();
     parse(&s, &e)
+}
+
+/// Fayllar o'zgarganini bilish uchun: (o'lcham, o'zgartirilgan vaqt) ikkala fayl uchun.
+pub type Stamp = [Option<(u64, std::time::SystemTime)>; 2];
+
+pub fn stamp() -> Stamp {
+    let one = |name: &str| {
+        let m = std::fs::metadata(dir()?.join(name)).ok()?;
+        Some((m.len(), m.modified().ok()?))
+    };
+    [one(SETTINGS_FILE), one(EXCEPTIONS_FILE)]
 }
 
 #[cfg(test)]
@@ -175,6 +220,22 @@ fallback=0",
         assert!(!c.app_disabled("Termius.exe") && !c.fallback);
         let c = parse("disabled_apps = Foo.exe; bar.exe", "");
         assert!(c.app_disabled("foo.EXE") && c.app_disabled("bar.exe"));
+    }
+
+    #[test]
+    fn to_ini_round_trips() {
+        let mut c = parse(
+            "enabled=0\nfallback=0\ntutuq='\ndisabled_apps=a.exe;b.exe",
+            "",
+        );
+        c.opts.restore_apostrophes = false;
+        let back = parse(&to_ini(&c), "");
+        assert!(!back.enabled && !back.fallback && !back.opts.restore_apostrophes);
+        assert!(back.opts.english_guard && back.undo_backspace);
+        assert_eq!(back.opts.tutuq, '\'');
+        assert_eq!(back.disabled_apps, vec!["a.exe", "b.exe"]);
+        let empty = parse(&to_ini(&parse("disabled_apps=", "")), "");
+        assert!(empty.disabled_apps.is_empty());
     }
 
     #[test]

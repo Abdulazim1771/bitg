@@ -1,0 +1,24 @@
+[package]
+name = "bitg-settings"
+description = "bitg settings window: switches, exceptions and a live preview (Windows, WebView2)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+publish = false
+
+[[bin]]
+name = "bitg-settings"
+path = "src/main.rs"
+
+[dependencies]
+bitg-core = { path = "../bitg-core" }
+bitg-tsf = { path = "../bitg-tsf" }
+serde_json = "1.0.154"
+
+[target.'cfg(windows)'.dependencies]
+wry = "0.57.2"
+tao = "0.37.2"

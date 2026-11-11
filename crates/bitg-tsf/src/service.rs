@@ -51,6 +51,11 @@ struct State {
     blind_logged: bool,
     session: Session,
     cfg: Config,
+    /// Sozlama fayllari holati va oxirgi tekshiruv (oyna o'zgartirsa — dasturni qayta ochmasdan qabul qilinadi).
+    stamp: config::Stamp,
+    checked: Option<Instant>,
+    /// Shu dasturda ishlaydimi (enabled va disabled_apps bo'yicha).
+    active: bool,
     /// Kontekst matnni bermayapti — zaxira yo'l ishlaydi.
     blind: bool,
     key_sink: bool,
@@ -71,6 +76,9 @@ impl Default for State {
             blind_logged: false,
             session: Session::new(),
             cfg: Config::default(),
+            stamp: Default::default(),
+            checked: None,
+            active: false,
             blind: true,
             key_sink: false,
             typed: Typed::default(),
@@ -96,6 +104,35 @@ impl TextService {
         Self {
             state: Rc::new(RefCell::new(State::default())),
         }
+    }
+}
+
+/// Sozlama fayllari ko'pi bilan sekundiga bir marta tekshiriladi.
+const CONFIG_CHECK: Duration = Duration::from_secs(1);
+
+impl State {
+    fn apply(&mut self, cfg: Config, stamp: config::Stamp) {
+        self.active = cfg.enabled && !cfg.app_disabled(log::process());
+        self.cfg = cfg;
+        self.stamp = stamp;
+        self.checked = Some(Instant::now());
+    }
+
+    /// Fayllar o'zgargan bo'lsa qayta o'qiydi. Qaytaradi: shu dasturda ishlash kerakmi.
+    fn refresh(&mut self) -> bool {
+        if self.checked.is_none_or(|t| t.elapsed() >= CONFIG_CHECK) {
+            self.checked = Some(Instant::now());
+            let now = config::stamp();
+            if now != self.stamp {
+                self.apply(config::load(), now);
+                log::write(if self.active {
+                    "settings reloaded: active"
+                } else {
+                    "settings reloaded: off for this app"
+                });
+            }
+        }
+        self.active
     }
 }
 
@@ -145,37 +182,37 @@ impl ITfTextInputProcessor_Impl for TextService_Impl {
 impl ITfTextInputProcessorEx_Impl for TextService_Impl {
     fn ActivateEx(&self, ptim: Ref<'_, ITfThreadMgr>, tid: u32, _flags: u32) -> Result<()> {
         let tm = ptim.ok()?.clone();
+        let stamp = config::stamp();
         let cfg = config::load();
-        let enabled = cfg.enabled && !cfg.app_disabled(log::process());
-        let fallback = cfg.fallback;
-        {
+        let active = {
             let mut st = self.state.borrow_mut();
             st.thread_mgr = Some(tm.clone());
             st.tid = tid;
-            st.cfg = cfg;
-        }
-        if !enabled {
-            log::write("activate: disabled for this app (settings)");
-            return Ok(());
-        }
+            st.apply(cfg, stamp);
+            st.active
+        };
+        // Kuzatuvchilar har doim ulanadi: sozlama oynada yoqilsa, dasturni qayta ochish shart emas.
+        // O'chiq holatda ular faqat kuzatadi, hech narsa yozmaydi (har chaqiruvda `refresh`).
         let me: IUnknown = self.to_object().to_interface();
         let src: ITfSource = tm.cast()?;
         let cookie = unsafe { src.AdviseSink(&ITfThreadMgrEventSink::IID, &me)? };
         self.state.borrow_mut().tm_cookie = cookie;
-        if fallback {
-            let sink: ITfKeyEventSink = self.to_object().to_interface();
-            let ks: ITfKeystrokeMgr = tm.cast()?;
-            match unsafe { ks.AdviseKeyEventSink(tid, &sink, true) } {
-                Ok(()) => self.state.borrow_mut().key_sink = true,
-                Err(e) => log::write(&format!("advise key sink failed hr={:#x}", e.code().0)),
-            }
+        let sink: ITfKeyEventSink = self.to_object().to_interface();
+        let ks: ITfKeystrokeMgr = tm.cast()?;
+        match unsafe { ks.AdviseKeyEventSink(tid, &sink, true) } {
+            Ok(()) => self.state.borrow_mut().key_sink = true,
+            Err(e) => log::write(&format!("advise key sink failed hr={:#x}", e.code().0)),
         }
         // Hozir fokusdagi hujjat.
         if let Ok(dim) = unsafe { tm.GetFocus() } {
             self.watch(Some(&dim));
         }
         std::thread::spawn(bitg_core::lang::warm_up);
-        log::write("activate");
+        log::write(if active {
+            "activate"
+        } else {
+            "activate: off for this app (settings)"
+        });
         Ok(())
     }
 }
@@ -296,7 +333,7 @@ impl TextService_Impl {
         let Some(t) = plan::word_before_caret(&before, reached_start) else {
             return Ok(());
         };
-        if t.trailing != 1 {
+        if t.trailing != 1 || !self.state.borrow_mut().refresh() {
             return Ok(());
         }
         let edit = {
@@ -439,6 +476,9 @@ impl TextService_Impl {
                     return; // matn o'qiladigan kontekst — asosiy yo'l ishlaydi
                 }
                 let Some(word) = word else { return };
+                if !st.refresh() || !st.cfg.fallback {
+                    return;
+                }
                 let st = &mut *st;
                 let Some(edit) = st.session.complete_word(&word, &st.cfg.opts) else {
                     log::write("fallback: word unchanged");
