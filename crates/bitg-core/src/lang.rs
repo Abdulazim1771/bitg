@@ -227,15 +227,23 @@ const UZ_EVIDENCE_CAP: f32 = 4.5;
 /// (qol "to'xta" / qo'l, oz / o'z, yoq / yo'q, otdi / o'tdi, tort / to'rt, som / so'm ...)
 const NEVER_RESTORE: &[&str] = &[
     "qol", "qoling", "oz", "yoq", "on", "ot", "otdi", "otadi", "otib", "otgan", "otish", "otar",
-    "tort", "som", "bor",
+    "otishi", "otganini", "otuvchi", "tort", "som", "bor", "tola", "toy", "top", "toq", "qoya",
+    "otin", "oqi", "sol", "oshda", "bolaman", "bolamiz", "oldirdi",
 ];
 
-/// Shu og'irlikdan yuqori so'z o'zi to'g'ri — apostrof qo'shilmaydi.
-const RESTORE_KNOWN: f32 = 2.5;
+/// Shu og'irlikdan yuqori so'z o'zi to'g'ri — apostrof qo'shilmaydi. Pastrog'i ko'pincha kirill korpusdagi
+/// xato yozuv (кора, оша, огир, гарб) — uni nomzod bilan solishtiramiz.
+const RESTORE_KNOWN: f32 = 3.3;
 /// Nomzod asl so'zdan shuncha kuchli bo'lsin (log10 shkala: ~30 baravar ko'p uchraydi).
 const RESTORE_MARGIN: f32 = 1.5;
-/// Apostrofsiz shakl ham lug'atda bor: ~45 baravar ko'p uchrashi kerak (1.5 da "oshganlar" kabi xatolar chiqdi).
+/// Apostrofsiz shakl ham lug'atda bor, nomzod o'zak orqali taxmin: ~45 baravar ko'p uchrashi kerak
+/// (1.5 da "oshganlar → o'shganlar" kabi xatolar chiqdi).
 const RESTORE_MARGIN_BOTH: f32 = 1.65;
+/// Ikkala shakl ham korpusda o'zi uchraydi (ogir/og'ir, garb/g'arb): ~16 baravar ko'p bo'lsa kifoya.
+/// Ikkalasi ham haqiqiy so'z bo'lgan juftlar (toy/to'y, top/to'p) — `NEVER_RESTORE` da.
+const RESTORE_MARGIN_DIRECT: f32 = 1.2;
+/// Inglizcha so'z (song, bog, bug) faqat o'zbekcha gap ichida va nomzod keng tarqalgan bo'lsa tiklanadi.
+const RESTORE_EN_MIN: f32 = 3.0;
 /// Asl shakl korpusda o'zi uchramaydi — faqat o'zak orqali taxmin (organ|ib, soz|lar), nomzod esa o'zi uchraydi
 /// (o'rganib, so'zlar): ~6 baravar ko'p uchrashi kifoya.
 const RESTORE_MARGIN_STEM: f32 = 0.8;
@@ -247,16 +255,17 @@ const RESTORE_MIN: f32 = 2.0;
 const RESTORE_MAX_SLOTS: usize = 6;
 
 /// Tushib qolgan apostrofni tiklash: "ozbek" → "o'zbek", "Togri" → "To'g'ri", "ogil" → "o'g'il".
-/// Asl so'z o'zi ma'lum bo'lsa (ozod, bor) yoki inglizcha bo'lsa (good, song) — None. Harf registri saqlanadi.
-pub fn restore_apostrophes(word: &str) -> Option<String> {
+/// Asl so'z o'zi ma'lum bo'lsa (ozod, bor) — None. Inglizcha so'z (song) faqat `uz_context` da (gap aniq
+/// o'zbekcha: "Bundan song keldim"). Harf registri saqlanadi.
+pub fn restore_apostrophes(word: &str, uz_context: bool) -> Option<String> {
     let key = fold_key(word);
     let kc: Vec<char> = key.chars().collect();
     let wc: Vec<char> = word.chars().collect();
-    if kc.len() != wc.len()
-        || kc.len() < 3
-        || en().contains_key(key.as_str())
-        || NEVER_RESTORE.contains(&key.as_str())
-    {
+    if kc.len() != wc.len() || kc.len() < 3 || NEVER_RESTORE.contains(&key.as_str()) {
+        return None;
+    }
+    let english = en().contains_key(key.as_str());
+    if english && !uz_context {
         return None;
     }
     let w0 = uz_weight(&key).unwrap_or(0.0);
@@ -303,10 +312,13 @@ pub fn restore_apostrophes(word: &str) -> Option<String> {
         RESTORE_MARGIN
     } else if !direct0 && cand_direct {
         RESTORE_MARGIN_STEM
+    } else if direct0 && cand_direct {
+        RESTORE_MARGIN_DIRECT
     } else {
         RESTORE_MARGIN_BOTH
     };
-    if w < RESTORE_MIN || w < w0 + margin {
+    let min = if english { RESTORE_EN_MIN } else { RESTORE_MIN };
+    if w < min || w < w0 + margin {
         return None;
     }
     let mut out = String::with_capacity(word.len() + slots.len());

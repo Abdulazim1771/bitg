@@ -34,6 +34,19 @@ fn missing_apostrophes_are_restored() {
         c("organib qolibman ogzaki sozlar"),
         "örganib qolibman oğzaki sözlar"
     );
+    // apostrofsiz shakl korpusda kirill xato yozuvi sifatida uchraydi (кора, оша, огир, гарб)
+    assert_eq!(
+        c("Shu kitobga kora yozdim, osha kuni ogir boldi. Garb mamlakatlari"),
+        "Şu kitobga köra yozdim, öşa kuni oğir böldi. Ğarb mamlakatlari"
+    );
+    // inglizcha lug'atdagi so'z: o'zbekcha gapda tiklanadi, inglizcha gapda — yo'q
+    assert_eq!(
+        c("Bundan song men uyga keldim"),
+        "Bundan söng men uyga keldim"
+    );
+    assert_eq!(c("I love this song"), "I love this song");
+    // ikkala shakl ham haqiqiy: toy/to'y, top/to'p
+    assert_eq!(c("toy kuni top oynadik"), "toy kuni top oynadik");
     // haqiqiy so'z: oshganlar (oshmoq), ortayotgani (ortmoq) — tegilmaydi
     assert_eq!(
         c("narxlar oshganlar, ortayotgani"),

@@ -169,6 +169,8 @@ fn english_blocks(core: &str, own: f32, ctx: f32) -> bool {
 const STRONG_ENGLISH: f32 = -3.0;
 /// Kontekst shundan inglizcharoq bo'lsa apostrof tiklanmaydi ("Gogol ozone ...").
 const RESTORE_CTX_MIN: f32 = -1.0;
+/// Inglizcha lug'atdagi so'zni (song → so'ng) tiklash uchun gap shunchalik aniq o'zbekcha bo'lsin.
+const RESTORE_EN_CTX: f32 = 1.5;
 
 /// Bitta tokenni o'giradi (kontekst bilan). `quote_open` — oldingi so'zlarda ochilgan tirnoq ('Yaxshi tong').
 fn convert_token(
@@ -219,7 +221,7 @@ fn convert_token(
     if opts.restore_apostrophes
         && ctx > RESTORE_CTX_MIN
         && !opts.is_exception(core)
-        && let Some(r) = lang::restore_apostrophes(core)
+        && let Some(r) = lang::restore_apostrophes(core, ctx >= RESTORE_EN_CTX)
     {
         restored = r;
         core = &restored;
