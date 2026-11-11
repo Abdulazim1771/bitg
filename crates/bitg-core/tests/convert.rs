@@ -135,6 +135,21 @@ fn protected_tokens() {
 }
 
 #[test]
+fn lone_letters() {
+    assert_eq!(
+        c("G' YOKO O' HARFLAR, o' va g' harfi"),
+        "Ğ YOKO Ö HARFLAR, ö va ğ harfi"
+    );
+    assert_eq!(c("O'"), "Ö");
+    // inglizcha va tirnoq ichida — tegilmaydi
+    assert_eq!(
+        c("Rock 'n' roll at nine o' the clock"),
+        "Rock 'n' roll at nine o' the clock"
+    );
+    assert_eq!(c("'o' dedi"), "'o' dedi");
+}
+
+#[test]
 fn quotes() {
     assert_eq!(c("'Yaxshi tong' dedi"), "'Yaxşi tong' dedi");
     assert_eq!(c("«Choyxona»"), "«Çoyxona»");

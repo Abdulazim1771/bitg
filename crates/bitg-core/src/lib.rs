@@ -227,7 +227,15 @@ fn convert_token(
         core = &restored;
     }
 
-    // Yolg'iz "o'" / "g'" (rock 'n' roll, "o' ..." ) — so'z emas, tirnoq yoki qisqartma.
+    // Harfning o'zi: "O' harfi", "G' yoki O'" — inglizcha gapda bo'lmasa o'giriladi (tirnoq yuqorida ajratilgan).
+    if lead.is_empty() && ctx > RESTORE_CTX_MIN && is_lone_letter(core) && !opts.is_exception(core)
+    {
+        let new_core = latin::to_new(core, opts.tutuq);
+        if new_core != core {
+            return (format!("{lead}{new_core}{trail}"), Reason::Converted);
+        }
+    }
+    // Boshqa 2 belgili apostrofli bo'lak (rock 'n' roll, d') — so'z emas, tirnoq yoki qisqartma.
     if core.is_empty()
         || core.chars().count() <= 2 && core.chars().any(is_apostrophe)
         || !latin::has_convertible(core)
@@ -253,6 +261,15 @@ fn convert_token(
     out.push_str(&new_core);
     out.push_str(trail);
     (out, Reason::Converted)
+}
+
+/// `o'`, `G'` va h.k.: yolg'iz o/g harfi + apostrof.
+fn is_lone_letter(core: &str) -> bool {
+    let mut c = core.chars();
+    matches!(
+        (c.next(), c.next(), c.next()),
+        (Some('o' | 'O' | 'g' | 'G'), Some(a), None) if is_apostrophe(a)
+    )
 }
 
 /// Matnni yangi alifboga o'giradi. Bo'shliqlar va qator tuzilishi aynan saqlanadi.
