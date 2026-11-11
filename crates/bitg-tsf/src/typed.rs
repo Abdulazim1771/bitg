@@ -39,6 +39,25 @@ impl Typed {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.word.is_empty()
+    }
+
+    /// Kursor oldidagi matn hozir yozilayotgan so'z bilan tugaydimi (kamida 2 harf): kontekst matnni
+    /// haqiqatan beradi. Bir marta ko'rilgan eski matn (masalan qoralama) bunga mos kelmaydi.
+    pub fn mirrored_in(&self, before: &[u16]) -> bool {
+        if self.word.len() < 2 {
+            return false;
+        }
+        let w: Vec<u16> = self
+            .word
+            .iter()
+            .collect::<String>()
+            .encode_utf16()
+            .collect();
+        before.ends_with(&w)
+    }
+
     /// Probel bosildi: ishonchli so'z bo'lsa — uni qaytaradi. Har holda chegara qo'yiladi.
     pub fn finish(&mut self) -> Option<String> {
         let w = (self.trusted && !self.word.is_empty() && self.word.len() <= MAX)
@@ -90,6 +109,17 @@ mod tests {
         // keyingi so'z yana ishonchli
         "choy".chars().for_each(|c| t.push(c));
         assert_eq!(t.finish().as_deref(), Some("choy"));
+    }
+
+    #[test]
+    fn mirrored_only_when_context_ends_with_typed_word() {
+        let u = |s: &str| s.encode_utf16().collect::<Vec<u16>>();
+        let t = typed("cho");
+        assert!(t.mirrored_in(&u("Salom, cho")));
+        // fokusda bir marta berilgan eski matn
+        assert!(!t.mirrored_in(&u("Kecha yozgan xabarim")));
+        // bitta harf tasodifan mos kelishi mumkin — yetarli emas
+        assert!(!typed("m").mirrored_in(&u("xabarim")));
     }
 
     #[test]

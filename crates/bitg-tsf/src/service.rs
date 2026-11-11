@@ -306,8 +306,16 @@ impl TextService_Impl {
             return Ok(());
         };
         let prev = std::mem::replace(&mut self.state.borrow_mut().last, before.clone());
-        if !before.is_empty() {
-            self.state.borrow_mut().blind = false;
+        {
+            // Asosiy yo'lga faqat kontekst bosilayotgan harflarni haqiqatan ko'rsatsa o'tamiz. Telegram fokusda
+            // bir marta eski matnni (qoralama, oldingi xabar) beradi, keyin yangilamaydi: shunga ishonilsa,
+            // birinchi xabar butunlay o'girilmay qolardi.
+            let mut st = self.state.borrow_mut();
+            let live = !prev.is_empty() && !before.is_empty() && prev != before;
+            if st.blind && (live || st.typed.mirrored_in(&before)) {
+                st.blind = false;
+                log::write("context mirrors typing: TSF path");
+            }
         }
         if before.is_empty() {
             let mut st = self.state.borrow_mut();
@@ -463,7 +471,12 @@ impl TextService_Impl {
                 || (GetAsyncKeyState(VK_RBUTTON.0 as i32) & 1) != 0
         };
         if clicked {
-            st.typed.lost();
+            // So'z boshlanmagan bo'lsa (maydonga bosib, yozishni boshlash) — yangi so'z boshi.
+            if st.typed.is_empty() {
+                st.typed.boundary();
+            } else {
+                st.typed.lost();
+            }
         }
         if held(VK_CONTROL) || held(VK_MENU) || held(VK_LWIN) || held(VK_RWIN) {
             st.typed.lost(); // Ctrl+V, Ctrl+Z, Alt+Tab ...
@@ -471,11 +484,19 @@ impl TextService_Impl {
         }
         match k {
             VK_SPACE => {
+                let had_letters = !st.typed.is_empty();
                 let word = st.typed.finish();
                 if !st.blind {
                     return; // matn o'qiladigan kontekst — asosiy yo'l ishlaydi
                 }
-                let Some(word) = word else { return };
+                let Some(word) = word else {
+                    if had_letters {
+                        log::write(
+                            "fallback: word not tracked (click, arrows or Ctrl inside the word)",
+                        );
+                    }
+                    return;
+                };
                 if !st.refresh() || !st.cfg.fallback {
                     return;
                 }
