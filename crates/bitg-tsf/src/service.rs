@@ -597,17 +597,28 @@ impl Replace_Impl {
             if m != -back {
                 return Ok("skip: range shift mismatch");
             }
-            target.ShiftEnd(ec, -(t.trailing as i32), &mut m, std::ptr::null())?;
         }
-        let text: Vec<u16> = self.insert.encode_utf16().collect();
+        // Bo'shliq ham almashtiriladi (so'z + bo'shliq → yangi so'z + o'sha bo'shliq). Chromium/Electron
+        // (ChatGPT, Chrome) faqat so'z almashtirilganda yangi yozilgan probelni yo'qotadi.
+        // Yangi qator (Enter) qayta yozilmaydi: chat dasturida u xabarni yuboradi.
+        let trail = before.last().copied().unwrap_or(0x20);
+        let keep_trail = matches!(trail, 0x20 | 0xA0 | 0x09);
+        let mut text: Vec<u16> = self.insert.encode_utf16().collect();
+        if keep_trail {
+            text.push(trail);
+        } else {
+            unsafe { target.ShiftEnd(ec, -(t.trailing as i32), &mut m, std::ptr::null())? };
+        }
         unsafe { target.SetText(ec, 0, &text)? };
 
         // Kursor: so'z va bo'shliqdan keyin.
         let after = unsafe { target.Clone()? };
         unsafe {
             after.Collapse(ec, TF_ANCHOR_END)?;
-            after.ShiftEnd(ec, t.trailing as i32, &mut m, std::ptr::null())?;
-            after.Collapse(ec, TF_ANCHOR_END)?;
+            if !keep_trail {
+                after.ShiftEnd(ec, t.trailing as i32, &mut m, std::ptr::null())?;
+                after.Collapse(ec, TF_ANCHOR_END)?;
+            }
         }
         let sel = TF_SELECTION {
             range: std::mem::ManuallyDrop::new(Some(after)),

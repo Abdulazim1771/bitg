@@ -111,6 +111,16 @@ pub fn save(msg: &Value) -> Value {
     }
 }
 
+/// Tray menyusidan: faqat `enabled` ni o'zgartiradi, qolgan sozlamalar va istisnolar saqlanadi.
+pub fn set_enabled(on: bool) -> std::io::Result<()> {
+    let (s, e) = config::read_raw();
+    let mut c = config::parse(&s, &e);
+    c.enabled = on;
+    let dir = config::dir().ok_or_else(|| std::io::Error::other("APPDATA topilmadi"))?;
+    std::fs::create_dir_all(&dir)?;
+    write_atomic(&dir.join(config::SETTINGS_FILE), &config::to_ini(&c))
+}
+
 fn write_atomic(path: &std::path::Path, text: &str) -> std::io::Result<()> {
     let tmp = path.with_extension("tmp");
     std::fs::write(&tmp, text)?;
@@ -171,6 +181,93 @@ pub fn preview(msg: &Value) -> Value {
         "id": msg.get("id").cloned().unwrap_or(Value::Null),
         "out": out,
         "segments": segs,
+    })
+}
+
+/// "Matn" sahifasi: butun matnni o'girish. `dir`: "new" (eski lotin yoki kirill → yangi) yoki "old".
+pub fn convert_text(msg: &Value) -> Value {
+    let text = msg.get("text").and_then(Value::as_str).unwrap_or("");
+    let dir = msg.get("dir").and_then(Value::as_str).unwrap_or("new");
+    let out = if dir == "old" {
+        let style = match msg.get("style").and_then(Value::as_str) {
+            Some("ascii") => bitg_core::OldStyle::Ascii,
+            _ => bitg_core::OldStyle::Official,
+        };
+        bitg_core::to_old(text, style)
+    } else {
+        let words = exception_words(&strings(msg.get("exceptions")).join("\n"));
+        let mut c = config_from(msg.get("settings").unwrap_or(&Value::Null), &words);
+        c.opts.cyrillic = true;
+        bitg_core::convert(text, &c.opts)
+    };
+    let changed = chunks(text)
+        .iter()
+        .zip(chunks(&out).iter())
+        .filter(|(a, b)| a != b)
+        .count();
+    json!({
+        "kind": "converted",
+        "id": msg.get("id").cloned().unwrap_or(Value::Null),
+        "out": out,
+        "changed": changed,
+    })
+}
+
+/// IME log'idan statistika (`ts pid=N dastur.exe xabar`). Matn log'da yo'q — faqat sanaladi.
+/// `now` va `tz` (soniya, mahalliy vaqt farqi) — kunlarni mahalliy vaqtda ajratish uchun.
+pub fn stats(log: &str, now: u64, tz: i64) -> Value {
+    const DAY: i64 = 86_400;
+    let local_day = |ts: i64| (ts + tz).div_euclid(DAY);
+    let today = local_day(now as i64);
+    let mut days = [0u64; 14];
+    let mut apps: Vec<(String, u64, i64)> = Vec::new(); // dastur, o'girilgan so'zlar, oxirgi faollik
+    let mut first: Option<i64> = None;
+    let mut total = 0u64;
+    for line in log.lines() {
+        let mut it = line.splitn(3, ' ');
+        let (Some(ts), Some(pid), Some(rest)) = (it.next(), it.next(), it.next()) else {
+            continue;
+        };
+        let Ok(ts) = ts.parse::<i64>() else { continue };
+        if !pid.starts_with("pid=") {
+            continue;
+        }
+        let lower = rest.to_ascii_lowercase();
+        let (exe, msg) = match lower.find(".exe ") {
+            Some(i) => (&rest[..i + 4], &rest[i + 5..]),
+            None => match rest.split_once(' ') {
+                Some((a, b)) => (a, b),
+                None => continue,
+            },
+        };
+        first.get_or_insert(ts);
+        let converted = msg == "converted" || msg == "fallback: converted";
+        let k = match apps.iter().position(|a| a.0.eq_ignore_ascii_case(exe)) {
+            Some(k) => k,
+            None => {
+                apps.push((exe.to_string(), 0, ts));
+                apps.len() - 1
+            }
+        };
+        apps[k].2 = apps[k].2.max(ts);
+        if converted {
+            apps[k].1 += 1;
+            total += 1;
+            let back = today - local_day(ts);
+            if (0..14).contains(&back) {
+                days[13 - back as usize] += 1;
+            }
+        }
+    }
+    apps.sort_by_key(|a| std::cmp::Reverse(a.2));
+    json!({
+        "kind": "stats",
+        "days": days,
+        "today": days[13],
+        "week": days[7..].iter().sum::<u64>(),
+        "total": total,
+        "since": first,
+        "apps": apps.iter().map(|(e, n, last)| json!({"exe": e, "n": n, "last": last})).collect::<Vec<_>>(),
     })
 }
 
@@ -235,6 +332,46 @@ mod tests {
         assert!(c.enabled);
         assert_eq!(c.opts.tutuq, '\u{02BC}');
         assert_eq!(c.disabled_apps, vec!["foo.exe"]);
+    }
+
+    #[test]
+    fn stats_count_by_local_day_and_app() {
+        let day = 86_400u64;
+        let now = 100 * day + 3600; // 100-kun, 01:00 UTC
+        let log = format!(
+            "{a} pid=1 Telegram.exe activate\n{a} pid=1 Telegram.exe fallback: converted\n\
+             {b} pid=2 chrome.exe converted\n{b} pid=2 chrome.exe word unchanged\n\
+             {c} pid=3 Code Helper.exe converted\nbuzuq qator\n{d} pid=2 chrome.exe converted\n",
+            a = now - 60,
+            b = now - day,
+            c = now - 2 * day,
+            d = now - 30 * day,
+        );
+        let v = stats(&log, now, 0);
+        assert_eq!(v["today"], 1);
+        assert_eq!(v["week"], 3);
+        assert_eq!(v["total"], 4);
+        assert_eq!(v["days"][12], 1);
+        assert_eq!(v["apps"][0]["exe"], "Telegram.exe");
+        let code = v["apps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|a| a["exe"] == "Code Helper.exe");
+        assert_eq!(code.unwrap()["n"], 1);
+        // UTC+5: 01:00 UTC = 06:00 mahalliy, "kecha" o'sha-o'sha.
+        assert_eq!(stats(&log, now, 5 * 3600)["today"], 1);
+    }
+
+    #[test]
+    fn convert_text_both_directions() {
+        let v = convert_text(
+            &json!({"text": "Toshkent шаҳар", "dir": "new", "settings": {"cyrillic": false}}),
+        );
+        assert_eq!(v["out"], "Toşkent şahar");
+        assert_eq!(v["changed"], 2);
+        let o = convert_text(&json!({"text": "Özbekiston", "dir": "old", "style": "ascii"}));
+        assert_eq!(o["out"], "O'zbekiston");
     }
 
     #[test]

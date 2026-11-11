@@ -86,10 +86,13 @@ regsvr32 target\release\bitg_tsf.dll
 Log: `%LOCALAPPDATA%\bitg\tsf.log` — faqat dastur nomi va natija (`converted`, `word unchanged`, xato kodi);
 yozilgan matn hech qachon saqlanmaydi.
 
-**Sozlamalar oynasi** — `bitg-settings.exe` ([`crates/bitg-settings`](crates/bitg-settings), WebView2): yoqish/o'chirish,
-inglizcha himoya, apostrof tiklash, kirill, tutuq belgisi, ishlamaydigan dasturlar va istisnolar ro'yxati, hamda
-IME bilan bir xil yadrodagi jonli namuna (o'zgargan harflar ajratib ko'rsatiladi, so'zni bosib istisnoga qo'shish).
+**bitg ilovasi** — `bitg-settings.exe` ([`crates/bitg-settings`](crates/bitg-settings), WebView2; Start menyusida «bitg»):
+tray belgisi (bosish — oyna, o'ng tugma — yoqish/o'chirish, o'chiq holatda kulrang), Windows bilan ishga tushish,
+bitta nusxa. Bo'limlar: Asosiy (zarrachalardan yasalgan jonli harf Oʻ→Ö, Sh→Ş; bugungi va 14 kunlik statistika,
+klaviatura o'rnatilganini tekshirish), Sinash, Matnni o'girish (eski↔yangi, kirill), Qoidalar, Dasturlar (har dastur
+uchun yoqish/o'chirish), Istisnolar, Haqida. Statistika IME log'idan: unda faqat vaqt, dastur nomi va natija bor.
 O'zgarishlar darhol saqlanadi; IME ularni bir soniya ichida, dasturlarni qayta ochmasdan qabul qiladi.
+Dizayn yo'nalishi: [`crates/bitg-settings/DESIGN.md`](crates/bitg-settings/DESIGN.md).
 
 Fayllar (qo'lda tahrirlash ham mumkin): `%APPDATA%\bitg\settings.ini` (`enabled`, `english_guard`, `cyrillic`,
 `restore_apostrophes`, `tutuq`, `fallback`, `disabled_apps`) va `%APPDATA%\bitg\exceptions.txt` (har qatorda bitta so'z).
