@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>@bitguz kanal postlari</title>
+<style>
+:root{--bg:#f6f6f3;--card:#fff;--ink:#16181d;--mute:#5d6470;--line:#e3e3de;--acc:#2f62c0;--acc-soft:#e8eefa;--ok:#1f8a4c;--ok-soft:#e6f4ec;--warn:#9a5b00;--warn-soft:#fdf1dd;--code:#f0f0ec;--tg:#eef3f8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1117;--card:#171a22;--ink:#e9eaee;--mute:#9aa1ad;--line:#2a2e39;--acc:#8fb0ea;--acc-soft:#1c2740;--ok:#5cc58a;--ok-soft:#15281e;--warn:#e7b25a;--warn-soft:#2c2414;--code:#1e222c;--tg:#1b2230}}
+:root[data-theme="dark"]{--bg:#0f1117;--card:#171a22;--ink:#e9eaee;--mute:#9aa1ad;--line:#2a2e39;--acc:#8fb0ea;--acc-soft:#1c2740;--ok:#5cc58a;--ok-soft:#15281e;--warn:#e7b25a;--warn-soft:#2c2414;--code:#1e222c;--tg:#1b2230}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Inter,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:32px 16px 80px}
+h1{font-size:30px;line-height:1.2;margin:0 0 8px}
+h2{font-size:21px;margin:32px 0 12px}
+.lead{color:var(--mute);margin:0 0 16px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+button{font:inherit;cursor:pointer}
+.th{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:14px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin:0 0 16px}
+.box ul{margin:6px 0;padding-left:20px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{color:var(--mute);font-weight:600}
+.post{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin:0 0 16px}
+.post.done{opacity:.55}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.pt{font-weight:600}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--code);color:var(--mute);white-space:nowrap}
+.tag.k{background:var(--acc-soft);color:var(--acc)}
+.tag.p{background:var(--warn-soft);color:var(--warn)}
+.msg{background:var(--tg);border-radius:12px;padding:12px 14px;white-space:pre-wrap;font-size:15px;line-height:1.55;overflow-wrap:anywhere}
+.msg a{color:var(--acc)}
+.act{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.cp{background:var(--acc);color:#fff;border:none;border-radius:9px;padding:6px 14px;font-size:14px;font-weight:600}
+:root[data-theme="dark"] .cp{color:#0f1117}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cp{color:#0f1117}}
+.act label{font-size:14px;color:var(--mute);display:flex;gap:6px;align-items:center;cursor:pointer}
+.note{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14.5px;margin:10px 0 0}
+.poll{background:var(--ok-soft);color:var(--ok);border-radius:10px;padding:10px 12px;font-size:14.5px;margin:10px 0 0}
+code{background:var(--code);border-radius:6px;padding:1px 6px;font:13.5px ui-monospace,Consolas,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>@bitguz — kanal postlari</h1>
+      <p class="lead">Tayyor postlar: «Nusxalash»ni bosing va Telegram'ga qo'ying — qalin matn va havolalar saqlanadi. Joylaganingizni belgilang, belgi shu brauzerda eslab qolinadi. Tuzilgan: 2026-11-12.</p>
+    </div>
+    <button class="th" id="th" type="button" aria-label="Mavzuni almashtirish">◐</button>
+  </div>
+
+  <div class="box">
+    <b>Qoidalar</b>
+    <ul>
+      <li><b>Imlo:</b> post matni eski imloda (o‘ g‘ sh ch) — o‘quvchilar shunday o‘qiydi, Google esa <code>t.me/s/bitguz</code> ni shu so‘zlar bilan topadi. Misollar yangi alifboda.</li>
+      <li><b>Hamma misol bitg yadrosidan olingan</b> (CLI natijasi). O‘zingiz yangi misol qo‘shsangiz, avval @bitguzbot'da tekshiring.</li>
+      <li><b>Faqat haqiqat:</b> qonun sanalari — O‘RQ-1184, imzolangan 2026-10-21, kuchga kiradi 2027-04-22. To‘qima raqam, «minglab foydalanuvchi» kabi gap yo‘q.</li>
+      <li><b>Ritm:</b> haftasiga 3–4 post, 09:00 yoki 20:00 da. Har oyning 22-sanasi — countdown.</li>
+      <li><b>Havola:</b> domen ochilguncha <code>bitg.dtwin.uz</code>; bitg.uz ishlagach postlardagi havolalarni tahrirlang (eski havolalar 301 bilan baribir ochiladi).</li>
+      <li><b>Teglar:</b> <code>#yangialifbo</code> <code>#bitg</code> — har postning oxirida.</li>
+    </ul>
+  </div>
+
+  <h2>Jadval</h2>
+  <div class="box tw">
+    <table>
+      <tr><th>Qachon</th><th>Post</th></tr>
+      <tr><td>1-kun</td><td>1. Kanal haqida (pin) · 2. Qonun 1 daqiqada</td></tr>
+      <tr><td>2-kun</td><td>3. To‘rtta yangi harf</td></tr>
+      <tr><td>3-kun</td><td>4. @bitguzbot <small>(bot ishga tushgandan keyin)</small></td></tr>
+      <tr><td>5-kun</td><td>5. Viktorina: Toshkent</td></tr>
+      <tr><td>7-kun</td><td>6. Ng qayerga ketdi?</td></tr>
+      <tr><td>9-kun</td><td>7. Tutuq belgisi qoladi</td></tr>
+      <tr><td><b>22-noyabr</b></td><td>8. Countdown: 151 kun</td></tr>
+      <tr><td>2-hafta</td><td>9. Pasportni almashtirish kerakmi? · 10. Ismingiz yangi alifboda</td></tr>
+      <tr><td>3-hafta</td><td>11. Inglizcha buzilmaydi · 12. Kompyuter va telefonda yozish</td></tr>
+      <tr><td>4-hafta</td><td>13. Shahar nomlari · 14. Maktab va darsliklar · 15. Xato o‘girdimi? ⌫</td></tr>
+      <tr><td><b>22-dekabr</b></td><td>16. Countdown: 121 kun</td></tr>
+      <tr><td>dekabr oxiri</td><td>17. Hukumat dasturi (chiqqan kuni — matnni faktlar bilan to‘ldiring)</td></tr>
+      <tr><td>har oyning 22-si</td><td>countdown: 22-yanvar — 90 · 22-fevral — 59 · 22-mart — 31 · 1-aprel — 21 kun</td></tr>
+    </table>
+  </div>
+
+  <h2>Postlar</h2>
+
+  <div class="post" data-id="p1"><div class="ph"><span class="pt">1. Kanal haqida — pin qiling</span><span class="tags"><span class="tag k">1-kun</span><span class="tag">tanishtiruv</span></span></div>
+<div class="msg"><b>Eskiça yozing — yangiça çiqadi.</b> ⌨️
+
+2027-yil 22-aprelda yangi o‘zbek alifbosi kuchga kiradi: <b>O‘ → Ö, G‘ → Ğ, Sh → Ş, Ch → Ç.</b>
+
+Bu kanalda:
+• qonun va o‘tish jadvali — faqat rasmiy faktlar
+• so‘zlar, ismlar, joy nomlari yangi alifboda
+• yangi harflarni kompyuter va telefonda yozish
+
+<b>bitg</b> — Windows uchun bepul dastur: odatdagidek yozasiz, so‘z tugashi bilan yangi alifboga o‘zi o‘giradi. Inglizcha so‘z, havola va kodga tegmaydi.
+
+💻 Dastur: <a href="https://bitg.dtwin.uz">bitg.dtwin.uz</a>
+🤖 Telegram'da o‘girish: @bitguzbot
+
+#yangialifbo #bitg</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p2"><div class="ph"><span class="pt">2. Qonun 1 daqiqada</span><span class="tags"><span class="tag k">1-kun</span><span class="tag">fakt</span></span></div>
+<div class="msg"><b>Yangi alifbo qonuni — 1 daqiqada</b> 📜
+
+📌 <b>O‘RQ-1184-son qonun</b>, 2026-yil 21-oktabrda imzolangan
+📅 Kuchga kiradi: <b>2027-yil 22-aprel</b>
+
+Nima o‘zgaradi:
+• O‘ → <b>Ö</b> · G‘ → <b>Ğ</b> · Sh → <b>Ş</b> · Ch → <b>Ç</b>
+• Ng endi alohida harf emas
+• tutuq belgisi (ʼ) qoladi: maʼno, sanʼat
+• alifbo: <b>28 harf va 1 belgi</b>
+
+Nima o‘zgarmaydi:
+• amaldagi hujjatlar, pul va qimmatli qog‘ozlar o‘z kuchida qoladi
+
+Keyingi qadam: hukumat 2 oy ichida o‘tish dasturini tasdiqlashi kerak. Chiqishi bilan shu yerda yozamiz.
+
+#yangialifbo</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p3"><div class="ph"><span class="pt">3. To‘rtta yangi harf</span><span class="tags"><span class="tag k">2-kun</span><span class="tag">oldin → keyin</span></span></div>
+<div class="msg"><b>To‘rtta harf — butun farq shu</b> ✍️
+
+O‘zbekiston → <b>Özbekiston</b>
+G‘alaba → <b>Ğalaba</b>
+Shahar → <b>Şahar</b>
+Choy → <b>Çoy</b>
+
+Ikki belgi bitta harfga aylandi: apostrof va «h» kerak emas. Matn qisqaradi, o‘qilishi o‘zgarmaydi.
+
+Gap misolida:
+«Yangi alifboga o‘tish oson» → «Yangi alifboga <b>ötiş</b> oson»
+
+O‘z matningizni sinab ko‘ring: @bitguzbot ga yuboring.
+
+#yangialifbo</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p4"><div class="ph"><span class="pt">4. @bitguzbot</span><span class="tags"><span class="tag k">3-kun</span><span class="tag">vosita</span></span></div>
+<div class="msg"><b>Har qanday matnni yangi alifboga — Telegram'ning o‘zida</b> 🤖
+
+1️⃣ @bitguzbot ga matn yuboring — yangi alifboda qaytaradi
+2️⃣ <b>Istalgan chatda</b>: @bitguzbot deb yozing, keyin matnni — natijani tanlang, u darhol yuboriladi
+3️⃣ /eski — yangi alifbodan eski lotinga
+
+Kirill matn ham bo‘ladi:
+«Ўзбекистон шаҳри чиройли» → «Özbekiston şahri çiroyli»
+
+Inglizcha so‘zlarga tegmaydi:
+«Bugun choy ichamiz, keyin shop ga boramiz» → «Bugun <b>çoy içamiz</b>, keyin shop ga boramiz»
+
+#yangialifbo #bitg</div>
+<div class="note">Bot ishga tushgandan keyin joylang. Inline rejim uchun BotFather'da <code>/setinline</code> yoqilgan bo‘lishi kerak.</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p5"><div class="ph"><span class="pt">5. Viktorina: Toshkent</span><span class="tags"><span class="tag k">5-kun</span><span class="tag p">so‘rovnoma</span></span></div>
+<div class="poll">Telegram'da: 📎 → <b>So‘rovnoma (Poll)</b> → «Viktorina (Quiz mode)» ni yoqing.<br>
+<b>Savol:</b> «Toshkent» yangi alifboda qanday yoziladi?<br>
+<b>Variantlar:</b> Toshkent · <b>Toşkent ✅</b> · Toşkand · Tashkent<br>
+<b>Izoh (javobdan keyin chiqadi):</b> Sh → Ş, boshqa harflar o‘zgarmaydi: Toşkent. Tekshirish: @bitguzbot</div>
+<div class="act"><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p6"><div class="ph"><span class="pt">6. Ng qayerga ketdi?</span><span class="tags"><span class="tag k">7-kun</span><span class="tag">kutilmagan</span></span></div>
+<div class="msg"><b>Ng alifbodan chiqdi. «Tong» nima bo‘ladi?</b> 🤔
+
+Hech narsa. 🙂
+
+Ng endi alohida harf hisoblanmaydi — lekin so‘zlar avvalgidek n + g bilan yoziladi:
+<b>tong · ming · dengiz</b> — o‘zgarmaydi.
+
+Ya’ni bu o‘zgarish alifbo ro‘yxatiga tegishli, yozuvga emas.
+
+#yangialifbo</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p7"><div class="ph"><span class="pt">7. Tutuq belgisi qoladi</span><span class="tags"><span class="tag k">9-kun</span><span class="tag">kutilmagan</span></span></div>
+<div class="msg"><b>Apostrof butunlay yo‘qoladi deb o‘ylaganmisiz?</b>
+
+Yarmi qoladi. 👇
+
+❌ O‘ va G‘ dagi belgi ketadi: o‘qish → <b>öqiş</b>, g‘alaba → <b>ğalaba</b>
+✅ Tutuq belgisi (ʼ) qoladi: <b>maʼno, sanʼat</b>
+
+Farqi: o‘ va g‘ dagi belgi harfning bir qismi edi — endi uning o‘rnida Ö va Ğ bor. Tutuq esa alohida belgi, alifboda «1 belgi» sifatida qoladi.
+
+#yangialifbo</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p8"><div class="ph"><span class="pt">8. Countdown: 151 kun</span><span class="tags"><span class="tag k">22-noyabr</span><span class="tag">countdown</span></span></div>
+<div class="msg"><b>Yangi alifbogacha 151 kun qoldi.</b> ⏳
+
+22-aprel, 2027.
+
+Bugun bitta ish qiling: kompyuteringizda ö ğ ş ç ni yozib ko‘ring. Qiyin bo‘lsa — bitg odatdagidek yozganingizda o‘zi o‘giradi.
+
+💻 <a href="https://bitg.dtwin.uz">bitg.dtwin.uz</a>
+
+#yangialifbo</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p9"><div class="ph"><span class="pt">9. Pasportni almashtirish kerakmi?</span><span class="tags"><span class="tag k">2-hafta</span><span class="tag">savol-javob</span></span></div>
+<div class="msg"><b>Pasport, diplom, guvohnomani almashtirish kerakmi?</b>
+
+Yo‘q. ✅
+
+Qonunga ko‘ra amaldagi hujjatlar, pul va qimmatli qog‘ozlar <b>o‘z kuchida qoladi</b>. Eski yozuvdagi hujjat 22-apreldan keyin ham amal qilaveradi.
+
+Yangi hujjatlarni qanday tartibda berish — hukumat dasturida belgilanadi. Chiqishi bilan yozamiz.
+
+Savolingiz bormi? Izohda yozing — keyingi postlarda javob beramiz.
+
+#yangialifbo</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p10"><div class="ph"><span class="pt">10. Ismingiz yangi alifboda</span><span class="tags"><span class="tag k">2-hafta</span><span class="tag">shaxsiy</span></span></div>
+<div class="msg"><b>Ismingiz yangi alifboda qanday yoziladi?</b> 👤
+
+Shohruh → <b>Şohruh</b>
+Shahnoza → <b>Şahnoza</b>
+Cho‘lpon → <b>Çölpon</b>
+Charos → <b>Çaros</b>
+G‘ayrat → <b>Ğayrat</b>
+O‘ktam → <b>Öktam</b>
+O‘g‘iloy → <b>Öğiloy</b>
+G‘ulom → <b>Ğulom</b>
+
+O‘z ismingizni @bitguzbot ga yuboring — va natijani izohda yozing 👇
+
+#yangialifbo</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p11"><div class="ph"><span class="pt">11. Inglizcha buzilmaydi</span><span class="tags"><span class="tag k">3-hafta</span><span class="tag">mahsulot</span></span></div>
+<div class="msg"><b>«Chat» va «choy» — bitta qoida, ikki xil natija</b> 🧠
+
+Oddiy almashtirish (ch → ç) inglizcha so‘zlarni ham buzadi: chat → çat, check → çeck, shop → şop.
+
+bitg so‘zning o‘zbekcha yoki inglizcha ekanini ajratadi:
+«Bugun choy ichamiz, keyin shop ga boramiz. Check qilib ko‘r, chat da yozaman.»
+→ «Bugun <b>çoy içamiz</b>, keyin shop ga boramiz. Check qilib <b>kör</b>, chat da yozaman.»
+
+Havola, pochta manzili va kod ham o‘zgarmaydi.
+
+💻 <a href="https://bitg.dtwin.uz">bitg.dtwin.uz</a> · 🤖 @bitguzbot
+
+#yangialifbo #bitg</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p12"><div class="ph"><span class="pt">12. Kompyuter va telefonda yozish</span><span class="tags"><span class="tag k">3-hafta</span><span class="tag">qo‘llanma</span></span></div>
+<div class="msg"><b>Ş, Ç, Ğ, Ö ni qanday yozaman?</b> ⌨️
+
+💻 <b>Windows</b> — bitg o‘rnating va odatdagidek yozing: «choy» deb yozasiz, so‘z tugashi bilan «çoy» bo‘ladi. Yangi tugma o‘rganish shart emas. Xato o‘girsa — ⌫ bosing, so‘z qaytadi.
+
+📱 <b>Telefon</b> — ko‘p klaviaturalarda harfni bosib tursangiz qo‘shimcha harflar chiqadi (o → ö, s → ş, c → ç, g → ğ). Telefoningizda sinab ko‘ring.
+
+💬 <b>Telegram</b> — istalgan chatda: @bitguzbot matn
+
+Mac, Linux, Android va iOS uchun bitg — rejada.
+
+#yangialifbo</div>
+<div class="note">Telefon bandini joylashdan oldin o‘z telefoningizda tekshiring (skrinshot qo‘shsangiz yanada yaxshi).</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p13"><div class="ph"><span class="pt">13. Shahar nomlari</span><span class="tags"><span class="tag k">4-hafta</span><span class="tag">oldin → keyin</span></span></div>
+<div class="msg"><b>Xaritadagi nomlar yangi alifboda</b> 🗺
+
+Toshkent → <b>Toşkent</b>
+Farg‘ona → <b>Farğona</b>
+Qo‘qon → <b>Qöqon</b>
+Chirchiq → <b>Çirçiq</b>
+Shahrisabz → <b>Şahrisabz</b>
+G‘ijduvon → <b>Ğijduvon</b>
+To‘rtko‘l → <b>Törtköl</b>
+Qashqadaryo → <b>Qaşqadaryo</b>
+
+Xorazm esa o‘zgarmaydi — unda o‘, g‘, sh, ch yo‘q. 🙂
+
+Sizning shahringiz yoki tumaningiz qanday bo‘ladi? Izohda yozing 👇
+
+#yangialifbo</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p14"><div class="ph"><span class="pt">14. Maktab va darsliklar</span><span class="tags"><span class="tag k">4-hafta</span><span class="tag">ota-ona</span></span></div>
+<div class="msg"><b>Bolalar maktabda qachondan yangi alifboda o‘qiydi?</b> 🎒
+
+📚 1-sinf darsliklari — <b>2027-yildan</b>
+📚 Barcha sinflar — bosqichma-bosqich, <b>2031-yilgacha</b>
+
+Ya’ni o‘tish birdaniga emas: bolalar yangi alifboni 1-sinfdan boshlaydi, yuqori sinflar keyingi yillarda o‘tadi.
+
+Ota-onalar uchun maslahat: uyda bolangiz bilan @bitguzbot orqali so‘zlarni o‘yin qilib o‘giring — o‘qituvchi → <b>öqituvçi</b>, kitob o‘qish → <b>kitob öqiş</b>.
+
+#yangialifbo</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p15"><div class="ph"><span class="pt">15. Xato o‘girdimi? ⌫</span><span class="tags"><span class="tag k">4-hafta</span><span class="tag">mahsulot</span></span></div>
+<div class="msg"><b>Dastur so‘zni noto‘g‘ri o‘girsa nima bo‘ladi?</b>
+
+⌫ — bitta bosish, va so‘z avvalgi holiga qaytadi. ✨
+
+bitg buni eslab qoladi: o‘sha dasturda bu so‘zni endi o‘girmaydi. Masalan, «Chorsu» bozorini nom sifatida eski yozuvda qoldirmoqchi bo‘lsangiz — bir marta ⌫ yetadi.
+
+Hech qanday sozlama, ro‘yxat yoki menyu kerak emas.
+
+💻 <a href="https://bitg.dtwin.uz">bitg.dtwin.uz</a>
+
+#bitg</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p16"><div class="ph"><span class="pt">16. Countdown: 121 kun</span><span class="tags"><span class="tag k">22-dekabr</span><span class="tag">countdown</span></span></div>
+<div class="msg"><b>121 kun.</b> ⏳
+
+22-aprelgacha 4 oy qoldi.
+
+Eslatma:
+• O‘ → Ö · G‘ → Ğ · Sh → Ş · Ch → Ç
+• hujjatlar o‘z kuchida qoladi
+• tutuq (ʼ) qoladi, Ng alohida harf emas
+
+Do‘stingizga yuboring — u ham tayyor bo‘lsin. 📤
+
+#yangialifbo</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+
+  <div class="post" data-id="p17"><div class="ph"><span class="pt">17. Hukumat dasturi — chiqqan kuni</span><span class="tags"><span class="tag k">dekabr oxiri</span><span class="tag p">shablon</span></span></div>
+<div class="msg"><b>Yangi alifboga o‘tish dasturi tasdiqlandi</b> 📋
+
+[sana] kuni hukumat O‘RQ-1184 qonuniga ko‘ra o‘tish dasturini tasdiqladi.
+
+Asosiy bandlar:
+• [band 1 — manbadan aniq]
+• [band 2]
+• [band 3]
+
+Manba: [rasmiy havola — lex.uz yoki gov.uz]
+
+Batafsil va sizga nima o‘zgarishi: <a href="https://bitg.dtwin.uz">bitg.dtwin.uz</a>
+
+#yangialifbo</div>
+<div class="note">Shablon: faqat rasmiy manbadan olingan bandlarni yozing. Dastur chiqqanda menga havolasini yuboring — postni va saytdagi sahifalarni birga yangilayman.</div>
+<div class="act"><button class="cp" type="button">Nusxalash</button><label><input type="checkbox"> joylandi</label></div></div>
+</div>
+<script>
+(function () {
+  var KEY = 'bitguz-postlar-v1', d = document.documentElement, st = {};
+  try { st = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { st = {}; }
+  try { var t = localStorage.getItem('bitguz-postlar-theme'); if (t) d.setAttribute('data-theme', t); } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  Array.prototype.forEach.call(document.querySelectorAll('.post'), function (p) {
+    var id = p.getAttribute('data-id'), box = p.querySelector('input[type=checkbox]'), btn = p.querySelector('.cp'), msg = p.querySelector('.msg');
+    box.checked = !!st[id]; p.classList.toggle('done', box.checked);
+    box.addEventListener('change', function () { st[id] = box.checked; p.classList.toggle('done', box.checked); save(); });
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var html = msg.innerHTML.replace(/\n/g, '<br>'), plain = msg.innerText;
+      function ok() { btn.textContent = 'Nusxalandi ✓'; setTimeout(function () { btn.textContent = 'Nusxalash'; }, 1500); }
+      function fallback() {
+        var r = document.createRange(); r.selectNodeContents(msg);
+        var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+        try { document.execCommand('copy'); ok(); } catch (e) {}
+        s.removeAllRanges();
+      }
+      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([plain], { type: 'text/plain' })
+        })]).then(ok, fallback);
+      } else fallback();
+    });
+  });
+  document.getElementById('th').addEventListener('click', function () {
+    var cur = d.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    d.setAttribute('data-theme', next);
+    try { localStorage.setItem('bitguz-postlar-theme', next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>
