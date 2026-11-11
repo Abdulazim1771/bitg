@@ -5,6 +5,7 @@
 
 use bitg_core::Reason;
 use bitg_tsf::config::{self, Config, DEFAULT_DISABLED_APPS};
+use bitg_tsf::keymap::{self, KEYS, Keymap, LEVELS};
 use serde_json::{Value, json};
 
 pub fn settings_json(c: &Config) -> Value {
@@ -17,7 +18,55 @@ pub fn settings_json(c: &Config) -> Value {
         "fallback": c.fallback,
         "undo_backspace": c.undo_backspace,
         "disabled_apps": c.disabled_apps,
+        "auto_convert": c.auto_convert,
+        "keymap": c.keymap,
+        "layout": c.layout,
     })
+}
+
+/// Oyna uchun: `{"[": ["ö","Ö","[","{"], ...}` — faqat o'zgargan tugmalar, bo'sh qatlam "".
+pub fn keymap_json(m: &Keymap) -> Value {
+    let mut o = serde_json::Map::new();
+    for &(label, _) in KEYS {
+        let row = m.row(label);
+        if row.iter().any(Option::is_some) {
+            let cells: Vec<String> = row
+                .iter()
+                .map(|c| c.map(String::from).unwrap_or_default())
+                .collect();
+            o.insert(label.to_string(), json!(cells));
+        }
+    }
+    Value::Object(o)
+}
+
+/// Oynadan kelgan maxsus tartib. Noto'g'ri belgi — bo'sh qatlam.
+pub fn keymap_from(v: &Value) -> Keymap {
+    let mut m = Keymap::default();
+    let Some(o) = v.as_object() else { return m };
+    for (label, cells) in o {
+        let (Some(scan), Some(cells)) = (keymap::scan_of(label), cells.as_array()) else {
+            continue;
+        };
+        for (lvl, c) in cells.iter().take(LEVELS).enumerate() {
+            let c = c
+                .as_str()
+                .and_then(|t| keymap::parse_cell(t.trim()))
+                .flatten();
+            m.set(scan, lvl, c);
+        }
+    }
+    m
+}
+
+/// Maxsus tartib: fayl bo'lsa — undan, aks holda standart tartib nusxasi (tahrir shundan boshlanadi).
+fn custom_keymap(raw: &str) -> Keymap {
+    let m = Keymap::parse(raw);
+    if m.is_empty() {
+        keymap::preset(keymap::DEFAULT_LAYOUT).unwrap_or_default()
+    } else {
+        m
+    }
 }
 
 /// Oynadagi qiymatlardan `Config` (yo'q yoki noto'g'ri maydon — standart qiymat).
@@ -30,6 +79,13 @@ pub fn config_from(settings: &Value, exceptions: &[String]) -> Config {
     c.opts.restore_apostrophes = b("restore_apostrophes", c.opts.restore_apostrophes);
     c.fallback = b("fallback", c.fallback);
     c.undo_backspace = b("undo_backspace", c.undo_backspace);
+    c.auto_convert = b("auto_convert", c.auto_convert);
+    c.keymap = b("keymap", c.keymap);
+    if let Some(l) = settings.get("layout").and_then(Value::as_str)
+        && (l == keymap::CUSTOM || keymap::PRESETS.contains(&l))
+    {
+        c.layout = l.to_string();
+    }
     if let Some(t) = settings.get("tutuq").and_then(Value::as_str) {
         let mut it = t.chars();
         if let (Some(ch), None) = (it.next(), it.next()) {
@@ -81,9 +137,18 @@ fn strings(v: Option<&Value>) -> Vec<String> {
 pub fn load() -> Value {
     let (s, e) = config::read_raw();
     let c = config::parse(&s, &e);
+    let mut layouts = serde_json::Map::new();
+    for name in keymap::PRESETS {
+        if let Some(m) = keymap::preset(name) {
+            layouts.insert(name.to_string(), keymap_json(&m));
+        }
+    }
+    let custom = custom_keymap(&config::read_keymap());
+    layouts.insert(keymap::CUSTOM.into(), keymap_json(&custom));
     json!({
         "kind": "loaded",
         "settings": settings_json(&c),
+        "layouts": layouts,
         "exceptions": exception_words(&e),
         "default_apps": DEFAULT_DISABLED_APPS,
         "folder": config::dir().map(|d| d.display().to_string()),
@@ -103,6 +168,12 @@ pub fn save(msg: &Value) -> Value {
             ex.push('\n');
         }
         write_atomic(&dir.join(config::EXCEPTIONS_FILE), &ex)?;
+        if let Some(custom) = msg.get("custom") {
+            let text = keymap_from(custom).to_text();
+            if config::read_keymap() != text {
+                write_atomic(&dir.join(config::KEYMAP_FILE), &text)?;
+            }
+        }
         write_atomic(&dir.join(config::SETTINGS_FILE), &config::to_ini(&c))
     })();
     match result {
@@ -332,6 +403,27 @@ mod tests {
         assert!(c.enabled);
         assert_eq!(c.opts.tutuq, '\u{02BC}');
         assert_eq!(c.disabled_apps, vec!["foo.exe"]);
+    }
+
+    #[test]
+    fn keymap_json_round_trip() {
+        let m = keymap::preset("tilmoch").unwrap();
+        let v = keymap_json(&m);
+        assert_eq!(v["["], json!(["ö", "Ö", "[", "{"]));
+        assert_eq!(v["3"], json!(["", "", "", "№"]));
+        assert!(v.get("a").is_none());
+        assert_eq!(keymap_from(&v), m);
+        let bad = keymap_from(&json!({"[": ["xy", "U+00D6", "\u{7}"], "nope": ["a"]}));
+        assert_eq!(bad.get(0x1A, 0), None);
+        assert_eq!(bad.get(0x1A, 1), Some('Ö'));
+        assert_eq!(bad.get(0x1A, 2), None);
+        assert_eq!(custom_keymap(""), m);
+        let c = config_from(
+            &json!({"layout": "custom", "keymap": true, "auto_convert": false}),
+            &[],
+        );
+        assert!(c.keymap && !c.auto_convert && c.layout == "custom");
+        assert_eq!(config_from(&json!({"layout": "x"}), &[]).layout, "tilmoch");
     }
 
     #[test]

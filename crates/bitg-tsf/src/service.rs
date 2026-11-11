@@ -28,6 +28,7 @@ use windows::Win32::UI::TextServices::{
     ITfThreadMgrEventSink_Impl, TF_AE_END, TF_ANCHOR_END, TF_DEFAULT_SELECTION, TF_ES_ASYNC,
     TF_ES_READWRITE, TF_SELECTION, TF_SELECTIONSTYLE,
 };
+use windows::Win32::UI::WindowsAndMessaging::GetMessageExtraInfo;
 use windows_core::{BOOL, GUID, IUnknown, IUnknownImpl, Interface, Ref, Result, implement};
 
 use crate::config::{self, Config};
@@ -38,6 +39,7 @@ use crate::typed::Typed;
 /// Kursor oldidan o'qiladigan eng ko'p UTF-16 birlik.
 const LOOKBACK: i32 = 64;
 const NO_COOKIE: u32 = u32::MAX;
+use crate::keymap::REMAP_TAG;
 
 struct State {
     thread_mgr: Option<ITfThreadMgr>,
@@ -133,6 +135,11 @@ impl State {
             }
         }
         self.active
+    }
+
+    /// So'zni o'girish kerakmi: shu dasturda yoqilgan va avto o'girish o'chirilmagan.
+    fn converting(&mut self) -> bool {
+        self.refresh() && self.cfg.auto_convert
     }
 }
 
@@ -341,7 +348,7 @@ impl TextService_Impl {
         let Some(t) = plan::word_before_caret(&before, reached_start) else {
             return Ok(());
         };
-        if t.trailing != 1 || !self.state.borrow_mut().refresh() {
+        if t.trailing != 1 || !self.state.borrow_mut().converting() {
             return Ok(());
         }
         let edit = {
@@ -454,6 +461,16 @@ impl TextService_Impl {
     fn observe_key(&self, vk: u16, lparam: isize) {
         let mut st = self.state.borrow_mut();
         let k = VIRTUAL_KEY(vk);
+        // bitg klaviatura tartibi (tray ilovasi) yozgan harf: so'zning davomi.
+        if k == VK_PACKET {
+            let extra = unsafe { GetMessageExtraInfo() }.0 as u64;
+            if extra >> 32 == REMAP_TAG {
+                if let Some(c) = char::from_u32(extra as u32) {
+                    st.typed.push(c);
+                }
+                return;
+            }
+        }
         // O'zimiz yuborgan tugmalar.
         if st.injecting > 0 {
             if st.inject_until.is_some_and(|t| Instant::now() < t) {
@@ -497,7 +514,7 @@ impl TextService_Impl {
                     }
                     return;
                 };
-                if !st.refresh() || !st.cfg.fallback {
+                if !st.converting() || !st.cfg.fallback {
                     return;
                 }
                 let st = &mut *st;

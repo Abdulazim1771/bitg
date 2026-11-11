@@ -12,6 +12,7 @@
 #![allow(linker_messages)]
 
 pub mod config;
+pub mod keymap;
 pub mod plan;
 pub mod typed;
 

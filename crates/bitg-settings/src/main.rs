@@ -8,6 +8,8 @@
 #[cfg_attr(not(windows), allow(dead_code))]
 mod logic;
 #[cfg(windows)]
+mod remap;
+#[cfg(windows)]
 mod system;
 
 #[cfg(not(windows))]
@@ -28,6 +30,7 @@ fn main() {
         return;
     }
     system::first_run_setup();
+    remap::watch();
     if let Err(e) = app::run(tray_only) {
         eprintln!("bitg-settings: {e}");
         std::process::exit(1);
@@ -46,7 +49,7 @@ mod app {
     use tray_icon::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
     use wry::{WebContext, WebView, WebViewBuilder};
 
-    use crate::{logic, system};
+    use crate::{logic, remap, system};
 
     const PAGE: &str = include_str!("ui.html");
     const ICON_ON: u16 = 1;
@@ -184,6 +187,7 @@ mod app {
                 Event::UserEvent(Ev::Reply(json)) => send(&webview, &json),
                 Event::UserEvent(Ev::Show) => show(&window),
                 Event::UserEvent(Ev::Saved) => {
+                    remap::apply(&bitg_tsf::config::load());
                     if let Some(t) = &tray {
                         sync_tray(t);
                     }
@@ -199,6 +203,7 @@ mod app {
                     if e.id == t.enabled.id() {
                         let on = t.enabled.is_checked();
                         let _ = logic::set_enabled(on);
+                        remap::apply(&bitg_tsf::config::load());
                         sync_tray(t);
                         send(&webview, &logic::load().to_string());
                     } else if e.id == t.open.id() {

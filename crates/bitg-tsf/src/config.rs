@@ -9,7 +9,13 @@
 //! undo_backspace=1
 //! fallback=1
 //! disabled_apps=termius.exe, windowsterminal.exe
+//! auto_convert=1
+//! keymap=0
+//! layout=tilmoch
 //! ```
+//!
+//! `auto_convert` — probeldan keyin so'zni o'girish. `keymap` — yangi harflarni tugmalardan yozish
+//! (`layout`: tayyor tartib nomi yoki `custom` — `keymap.txt`).
 //!
 //! `fallback` — matnni TSF'ga bermaydigan dasturlar (Telegram Desktop): bosilgan harflar kuzatiladi va so'z
 //! Backspace + qayta yozish bilan almashtiriladi. `disabled_apps` — bitg umuman ishlamaydigan dasturlar
@@ -17,6 +23,8 @@
 
 use bitg_core::Options;
 use bitg_core::chars::fold_key;
+
+use crate::keymap::{self, Keymap};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -26,6 +34,12 @@ pub struct Config {
     /// Kichik harflarda: "termius.exe".
     pub disabled_apps: Vec<String>,
     pub opts: Options,
+    /// Probeldan keyin so'zni yangi alifboga o'girish.
+    pub auto_convert: bool,
+    /// Yangi harflarni tugmalardan yozish (klaviatura tartibi).
+    pub keymap: bool,
+    /// `keymap::PRESETS` dan biri yoki `keymap::CUSTOM`.
+    pub layout: String,
 }
 
 /// Terminallar: buyruq va parol yoziladi — standart holatda tegilmaydi.
@@ -43,6 +57,15 @@ pub const DEFAULT_DISABLED_APPS: &[&str] = &[
 ];
 
 impl Config {
+    /// Tanlangan tartib. `custom` — `keymap.txt` matnidan; noma'lum nom — standart.
+    pub fn resolve_keymap(&self, custom_text: &str) -> Keymap {
+        if self.layout == keymap::CUSTOM {
+            return Keymap::parse(custom_text);
+        }
+        keymap::preset(&self.layout)
+            .unwrap_or_else(|| keymap::preset(keymap::DEFAULT_LAYOUT).unwrap_or_default())
+    }
+
     pub fn app_disabled(&self, exe: &str) -> bool {
         let exe = exe.to_lowercase();
         self.disabled_apps.contains(&exe)
@@ -60,6 +83,9 @@ impl Default for Config {
                 .map(|s| s.to_string())
                 .collect(),
             opts: Options::default(),
+            auto_convert: true,
+            keymap: false,
+            layout: keymap::DEFAULT_LAYOUT.into(),
         }
     }
 }
@@ -97,6 +123,14 @@ pub fn parse(settings: &str, exceptions: &str) -> Config {
             }
             "undo_backspace" => c.undo_backspace = flag(v).unwrap_or(c.undo_backspace),
             "fallback" => c.fallback = flag(v).unwrap_or(c.fallback),
+            "auto_convert" => c.auto_convert = flag(v).unwrap_or(c.auto_convert),
+            "keymap" => c.keymap = flag(v).unwrap_or(c.keymap),
+            "layout" => {
+                let v = v.trim().to_ascii_lowercase();
+                if v == keymap::CUSTOM || keymap::PRESETS.contains(&v.as_str()) {
+                    c.layout = v;
+                }
+            }
             "disabled_apps" => {
                 c.disabled_apps = v
                     .split([',', ';'])
@@ -135,7 +169,7 @@ pub fn to_ini(c: &Config) -> String {
     format!(
         "# bitg sozlamalari. Sozlamalar oynasi yozadi; qo'lda tahrirlash ham mumkin.\n\
          enabled={}\nenglish_guard={}\ncyrillic={}\nrestore_apostrophes={}\ntutuq={}\n\
-         undo_backspace={}\nfallback={}\ndisabled_apps={}\n",
+         undo_backspace={}\nfallback={}\ndisabled_apps={}\nauto_convert={}\nkeymap={}\nlayout={}\n",
         bit(c.enabled),
         bit(c.opts.english_guard),
         bit(c.opts.cyrillic),
@@ -144,6 +178,9 @@ pub fn to_ini(c: &Config) -> String {
         bit(c.undo_backspace),
         bit(c.fallback),
         c.disabled_apps.join(", "),
+        bit(c.auto_convert),
+        bit(c.keymap),
+        c.layout,
     )
 }
 
@@ -154,6 +191,14 @@ pub fn dir() -> Option<std::path::PathBuf> {
 
 pub const SETTINGS_FILE: &str = "settings.ini";
 pub const EXCEPTIONS_FILE: &str = "exceptions.txt";
+pub const KEYMAP_FILE: &str = "keymap.txt";
+
+/// `keymap.txt` matni (yo'q bo'lsa — bo'sh).
+pub fn read_keymap() -> String {
+    dir()
+        .and_then(|d| std::fs::read_to_string(d.join(KEYMAP_FILE)).ok())
+        .unwrap_or_default()
+}
 
 /// Ikkala fayl matni (yo'q bo'lsa — bo'sh).
 pub fn read_raw() -> (String, String) {
@@ -171,15 +216,15 @@ pub fn load() -> Config {
     parse(&s, &e)
 }
 
-/// Fayllar o'zgarganini bilish uchun: (o'lcham, o'zgartirilgan vaqt) ikkala fayl uchun.
-pub type Stamp = [Option<(u64, std::time::SystemTime)>; 2];
+/// Fayllar o'zgarganini bilish uchun: (o'lcham, o'zgartirilgan vaqt) har fayl uchun.
+pub type Stamp = [Option<(u64, std::time::SystemTime)>; 3];
 
 pub fn stamp() -> Stamp {
     let one = |name: &str| {
         let m = std::fs::metadata(dir()?.join(name)).ok()?;
         Some((m.len(), m.modified().ok()?))
     };
-    [one(SETTINGS_FILE), one(EXCEPTIONS_FILE)]
+    [one(SETTINGS_FILE), one(EXCEPTIONS_FILE), one(KEYMAP_FILE)]
 }
 
 #[cfg(test)]
@@ -236,6 +281,26 @@ fallback=0",
         assert_eq!(back.disabled_apps, vec!["a.exe", "b.exe"]);
         let empty = parse(&to_ini(&parse("disabled_apps=", "")), "");
         assert!(empty.disabled_apps.is_empty());
+    }
+
+    #[test]
+    fn keymap_settings() {
+        let c = parse("", "");
+        assert!(c.auto_convert && !c.keymap && c.layout == "tilmoch");
+        let c = parse(
+            "auto_convert=0
+keymap=1
+layout=Turkish",
+            "",
+        );
+        assert!(!c.auto_convert && c.keymap && c.layout == "turkish");
+        let back = parse(&to_ini(&c), "");
+        assert!(!back.auto_convert && back.keymap && back.layout == "turkish");
+        assert_eq!(parse("layout=dvorak", "").layout, "tilmoch");
+        let mut c = parse("layout=custom", "");
+        assert_eq!(c.resolve_keymap("[ x X - -").get(0x1A, 0), Some('x'));
+        c.layout = "altgr".into();
+        assert_eq!(c.resolve_keymap("").get(0x18, 2), Some('ö'));
     }
 
     #[test]

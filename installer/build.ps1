@@ -32,6 +32,9 @@ try {
     Write-Host "bitg $Version" -ForegroundColor Cyan
 
     if (-not $SkipCargo) {
+        # MSVC majburiy: GNU toolchain'da WebView2Loader.dll alohida fayl bo'lib qoladi (o'rnatilgan ilova ochilmaydi)
+        # va IME DLL boshqa CRT bilan quriladi. Standart toolchain GNU bo'lgan kompyuterda ham shu ishlatiladi.
+        if (-not $env:RUSTUP_TOOLCHAIN) { $env:RUSTUP_TOOLCHAIN = 'stable-x86_64-pc-windows-msvc' }
         cargo build --release --locked -p bitg-tsf -p bitg-settings -p bitg-cli
         if ($LASTEXITCODE) { throw 'cargo build' }
     }
