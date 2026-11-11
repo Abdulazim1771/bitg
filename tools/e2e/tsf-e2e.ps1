@@ -85,7 +85,8 @@ function AltGr([string]$key) {
 $cfgDir = Join-Path $env:APPDATA 'bitg'
 New-Item -ItemType Directory -Force $cfgDir | Out-Null
 function Settings([hashtable]$s) {
-    $v = @{ enabled = 1; auto_convert = 1; keymap = 0; layout = 'tilmoch'; undo_backspace = 1; fallback = 1 }
+    # undo_remember standart holatda 0; e2e istisnoga yozish yo'lini ham tekshirishi uchun 1.
+    $v = @{ enabled = 1; auto_convert = 1; keymap = 0; layout = 'tilmoch'; undo_backspace = 1; undo_remember = 1; fallback = 1 }
     foreach ($k in $s.Keys) { $v[$k] = $s[$k] }
     $text = ($v.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join "`n"
     [IO.File]::WriteAllText((Join-Path $cfgDir 'settings.ini'), "$text`ndisabled_apps=`n")
@@ -138,7 +139,7 @@ $steps = @(
     { Focus }, $w,
     # 1) Avto o'girish: probeldan keyin so'z yangi alifboga
     { ClearBox }, { TypeKeys 'shahar ' }, $w, { Check 'auto: shahar' 'şahar ' },
-    # 2) Darhol Backspace: asl so'z qaytadi va istisnoga qo'shiladi
+    # 2) Darhol Backspace: asl so'z qaytadi va (undo_remember=1) istisnoga qo'shiladi
     { Tap $BACK }, $w, { Check 'undo: backspace restores' 'shahar' },
     {
         $ex = Join-Path $cfgDir 'exceptions.txt'
