@@ -129,7 +129,8 @@ function Focus {
 }
 
 # Har qadam 350 ms. $w — kutish; sozlama o'zgargach 4 ta (IME uni >1 s da qayta o'qiydi),
-# keyin bitta "a" tugmasi — IME yangi sozlamani shu tugmada oladi (AltGr tugmalari ham shunda ro'yxatga olinadi).
+# keyin "a" + bo'shliq — IME yangi sozlamani shu tugmada oladi (AltGr ham shunda), bo'shliq so'zni yopadi:
+# ClearBox matnni tugmasiz tozalaydi va zaxira yo'l (Win32 EDIT) buni ko'rmaydi.
 $w = { }
 $steps = @(
     { Focus },
@@ -149,21 +150,21 @@ $steps = @(
     { ClearBox }, { TypeKeys 'check ' }, $w, { Check 'english word kept' 'check ' },
     # 4) Tilmoch tartibi (avto o'chiq)
     { Settings @{ keymap = 1; layout = 'tilmoch'; auto_convert = 0 } }, $w, $w, $w, $w,
-    { TypeKeys 'a' }, $w,
+    { TypeKeys 'a ' }, $w,
     { ClearBox }, { TypeKeys "[;'" }, $w, { Check 'keymap: tilmoch letters' 'öşç' },
     { ClearBox }, { TypeKeys '{' }, $w, { Check 'keymap: shift level' 'Ö' },
     { ClearBox }, { AltGr '[' }, $w, { Check 'keymap: altgr level' '[' },
     { ClearBox }, { TypeKeys 'shahar ' }, $w, { Check 'keymap: auto off keeps sh' 'shahar ' },
     # 5) Kirill tartibi: avto yoqiq — yangi lotinga, o'chiq — kirill qoladi (x j q = ch o y)
     { Settings @{ keymap = 1; layout = 'kirill'; auto_convert = 1 } }, $w, $w, $w, $w,
-    { TypeKeys 'a' }, $w,
+    { TypeKeys 'a ' }, $w,
     { ClearBox }, { TypeKeys 'xjq ' }, $w, { Check 'kirill: auto on -> coy' 'çoy ' },
     { Settings @{ keymap = 1; layout = 'kirill'; auto_convert = 0 } }, $w, $w, $w, $w,
-    { TypeKeys 'a' }, $w,
+    { TypeKeys 'a ' }, $w,
     { ClearBox }, { TypeKeys 'xjq ' }, $w, { Check 'kirill: auto off stays cyrillic' 'чой ' },
     # 6) Tartib o'chiq — tugmalar odatdagidek
     { Settings @{ keymap = 0; auto_convert = 1 } }, $w, $w, $w, $w,
-    { TypeKeys 'a' }, $w,
+    { TypeKeys 'a ' }, $w,
     { ClearBox }, { TypeKeys '[x]' }, $w, { Check 'keymap off: plain keys' '[x]' }
 )
 
