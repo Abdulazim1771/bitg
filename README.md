@@ -34,13 +34,18 @@ O'zbekiston shaharlari
 
 | To'plam | Natija |
 |---|---|
-| O'zbekcha gaplar (3000 ta, kirill matndan: kirish = eski lotin, kutilgan = yangi lotin, apostrof turlari aralash) | **99.67%** |
+| O'zbekcha gaplar (3000 ta, kirill matndan: kirish = eski lotin, kutilgan = yangi lotin, apostrof turlari aralash) | **99.37%** |
+| Apostrofsiz yozilgan o'zbekcha ("ozbek", "togri"; boshqa 3000 gap): tiklangan ö/ğ | **~65%** so'z, noto'g'ri qo'shilgani ~7 ta |
 | Inglizcha gaplar (sh/ch/apostrof bor, 3000 ta, Leipzig news + web) — o'zgarmasligi kerak | **99.73%** |
-| Tezlik | ~1.3–1.8 µs/so'z (release, x64) |
+| Tezlik | ~2–4 µs/so'z (release, x64) |
 
 O'zbekcha to'plamda kirish ham, kutilgan javob ham kirill matndan mustaqil olinadi, shuning uchun konvertor
-`Is'hoq → Ishoq`, `O'zA → ÖzA`, `Sh.Sharipov → Ş.Şaripov` kabi holatlarni o'zi topishi kerak. Qolgan xatolarning
-ko'pi korpusdagi shovqin (kirill gap ichida lotin so'z).
+`Is'hoq → Ishoq`, `O'zA → ÖzA`, `Sh.Sharipov → Ş.Şaripov` kabi holatlarni o'zi topishi kerak. Qolgan "xatolarning"
+ko'pi korpusdagi shovqin: kirill matndagi imlo xatosi (Киргизистон, Фаргона) — bitg ularni to'g'rilab qo'yadi.
+
+**Apostrof tiklash** (`ozbek → özbek`): nomzod lug'atda asl so'zdan ancha ko'p uchrasa. Asl so'z ham haqiqiy
+bo'lsa (`qol/qo'l`, `oz/o'z`, `yoq/yo'q`, `otdi/o'tdi`) — taxmin qilinmaydi. Apostrofsiz shakl haqiqiy so'zmi —
+faqat kirill korpus aytadi (lotin matnidagi "bolgan" — xato yozuv).
 
 To'plamni o'zingiz qurish: [`tools/build_eval.py`](tools/build_eval.py), so'ng `bitg eval eval/out/uz.tsv`.
 

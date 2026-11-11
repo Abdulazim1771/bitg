@@ -23,6 +23,28 @@ fn uzbek_sentences() {
 }
 
 #[test]
+fn missing_apostrophes_are_restored() {
+    assert_eq!(
+        c("Men ozbek tilida togri yozaman, ogil bola kop kitob"),
+        "Men özbek tilida töğri yozaman, öğil bola köp kitob"
+    );
+    assert_eq!(c("Ozbekiston, Ozim bilaman"), "Özbekiston, Özim bilaman");
+    // ikkala shakl ham haqiqiy so'z — taxmin qilinmaydi
+    assert_eq!(
+        c("Uyda qol, oz qoldi, ozod bor"),
+        "Uyda qol, oz qoldi, ozod bor"
+    );
+    // inglizcha so'z va gap
+    assert_eq!(c("good song, go home"), "good song, go home");
+    // o'chirib qo'yish
+    let off = Options {
+        restore_apostrophes: false,
+        ..Options::default()
+    };
+    assert_eq!(convert("ozbek tili", &off), "ozbek tili");
+}
+
+#[test]
 fn common_english_word_inside_uzbek_sentence_is_kept() {
     assert_eq!(
         c("salom choy o'zbek check, keyin shahar"),

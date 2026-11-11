@@ -18,10 +18,10 @@ fn parse(tsv: &'static str) -> HashMap<&'static str, f32> {
         if line.starts_with('#') {
             continue;
         }
-        if let Some((w, s)) = line.split_once('\t') {
-            if let Ok(v) = s.trim().parse::<f32>() {
-                m.insert(w, v);
-            }
+        if let Some((w, s)) = line.split_once('\t')
+            && let Ok(v) = s.trim().parse::<f32>()
+        {
+            m.insert(w, v);
         }
     }
     m
@@ -140,12 +140,11 @@ fn uz_weight(key: &str) -> Option<f32> {
                 continue;
             }
             for s2 in SUFFIXES {
-                if let Some(stem2) = stem.strip_suffix(s2) {
-                    if stem2.chars().count() >= 3 {
-                        if let Some(&w) = uz().get(stem2) {
-                            best = Some(best.map_or(w * 0.6, |b: f32| b.max(w * 0.6)));
-                        }
-                    }
+                if let Some(stem2) = stem.strip_suffix(s2)
+                    && stem2.chars().count() >= 3
+                    && let Some(&w) = uz().get(stem2)
+                {
+                    best = Some(best.map_or(w * 0.6, |b: f32| b.max(w * 0.6)));
                 }
             }
         }
@@ -208,7 +207,7 @@ pub fn evidence(word: &str) -> f32 {
         return -6.0;
     }
     let en_w = en().get(key.as_str()).copied();
-    let uz_w = uz_weight(&key);
+    let uz_w = uz_weight(&key).map(|w| w.min(UZ_EVIDENCE_CAP));
     // Apostrofli inglizcha so'z (o'clock, ma'am, rock'n'roll) — o'/tutuq bo'lsa ham o'zbekcha emas.
     if en_w.is_some() && uz_w.is_none() && key.contains('\'') {
         return -6.0;
@@ -219,6 +218,95 @@ pub fn evidence(word: &str) -> f32 {
         (None, Some(e)) => -e,
         (None, None) => letter_cues(&key),
     }
+}
+
+/// Til dalilida o'zbek og'irligining shifti (lug'atda 6.0 gacha — chastota nisbatlari uchun).
+const UZ_EVIDENCE_CAP: f32 = 4.5;
+
+/// Ikkala shakli ham haqiqiy va tez-tez uchraydigan so'zlar: apostrofsiz yozilgan bo'lsa — taxmin qilinmaydi.
+/// (qol "to'xta" / qo'l, oz / o'z, yoq / yo'q, otdi / o'tdi, tort / to'rt, som / so'm ...)
+const NEVER_RESTORE: &[&str] = &[
+    "qol", "qoling", "oz", "yoq", "on", "ot", "otdi", "otadi", "otib", "otgan", "otish", "otar",
+    "tort", "som", "bor",
+];
+
+/// Shu og'irlikdan yuqori so'z o'zi to'g'ri — apostrof qo'shilmaydi.
+const RESTORE_KNOWN: f32 = 2.5;
+/// Nomzod asl so'zdan shuncha kuchli bo'lsin (log10 shkala: ~30 baravar ko'p uchraydi).
+const RESTORE_MARGIN: f32 = 1.5;
+/// Apostrofsiz shakl ham lug'atda bor: ~300 baravar ko'p uchrashi kerak.
+const RESTORE_MARGIN_BOTH: f32 = 2.0;
+/// Nomzodning eng kichik og'irligi (siyrak so'zlarga taxmin qilmaymiz).
+const RESTORE_MIN: f32 = 2.0;
+/// o/g o'rinlari ko'pi bilan (2^6 = 64 nomzod).
+const RESTORE_MAX_SLOTS: usize = 6;
+
+/// Tushib qolgan apostrofni tiklash: "ozbek" → "o'zbek", "Togri" → "To'g'ri", "ogil" → "o'g'il".
+/// Asl so'z o'zi ma'lum bo'lsa (ozod, bor) yoki inglizcha bo'lsa (good, song) — None. Harf registri saqlanadi.
+pub fn restore_apostrophes(word: &str) -> Option<String> {
+    let key = fold_key(word);
+    let kc: Vec<char> = key.chars().collect();
+    let wc: Vec<char> = word.chars().collect();
+    if kc.len() != wc.len()
+        || kc.len() < 3
+        || en().contains_key(key.as_str())
+        || NEVER_RESTORE.contains(&key.as_str())
+    {
+        return None;
+    }
+    let w0 = uz_weight(&key).unwrap_or(0.0);
+    if w0 >= RESTORE_KNOWN {
+        return None;
+    }
+    let slots: Vec<usize> = (0..kc.len())
+        .filter(|&i| matches!(kc[i], 'o' | 'g') && kc.get(i + 1) != Some(&'\''))
+        .collect();
+    if slots.is_empty() || slots.len() > RESTORE_MAX_SLOTS {
+        return None;
+    }
+    let mut best: Option<(f32, u32, u32)> = None; // (og'irlik, -qo'shimchalar soni, mask)
+    let mut cand = String::with_capacity(key.len() + slots.len());
+    for mask in 1u32..(1 << slots.len()) {
+        cand.clear();
+        let mut si = 0;
+        for (i, &c) in kc.iter().enumerate() {
+            cand.push(c);
+            if si < slots.len() && slots[si] == i {
+                if mask & (1 << si) != 0 {
+                    cand.push('\'');
+                }
+                si += 1;
+            }
+        }
+        if let Some(w) = uz_weight(&cand) {
+            let fewer = u32::MAX - mask.count_ones();
+            if best.is_none_or(|(bw, bf, _)| w > bw || (w == bw && fewer > bf)) {
+                best = Some((w, fewer, mask));
+            }
+        }
+    }
+    let (w, _, mask) = best?;
+    // Ikkala shakl ham haqiqiy so'z (qol/qo'l, otdi/o'tdi, yoq/yo'q) — juda katta farq bo'lsagina.
+    let margin = if w0 > 0.0 {
+        RESTORE_MARGIN_BOTH
+    } else {
+        RESTORE_MARGIN
+    };
+    if w < RESTORE_MIN || w < w0 + margin {
+        return None;
+    }
+    let mut out = String::with_capacity(word.len() + slots.len());
+    let mut si = 0;
+    for (i, &c) in wc.iter().enumerate() {
+        out.push(c);
+        if si < slots.len() && slots[si] == i {
+            if mask & (1 << si) != 0 {
+                out.push('\'');
+            }
+            si += 1;
+        }
+    }
+    Some(out)
 }
 
 /// Lug'atda bormi (test va CLI uchun).

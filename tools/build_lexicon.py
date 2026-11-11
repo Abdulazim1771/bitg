@@ -67,6 +67,7 @@ def read_leipzig(paths, cyr_only):
     uz = {}
     sh_split = {}
     joined = {}
+    cyr = {}  # faqat kirill matndan: apostrof noaniqligi yo'q (бўлган / болган)
     for p in [(p, False) for p in paths] + [(p, True) for p in cyr_only]:
         p, only_cyr = p
         with open(p, encoding="utf-8", errors="replace") as fh:
@@ -91,6 +92,7 @@ def read_leipzig(paths, cyr_only):
                     elif "ш" in lw or "ч" in lw:
                         joined[key] = joined.get(key, 0) + f
                     uz[key] = uz.get(key, 0) + f
+                    cyr[key] = cyr.get(key, 0) + f
                     continue
                 if only_cyr:
                     continue  # bu korpusning lotin qismi aralash (rus/ingliz) — faqat kirill olinadi
@@ -102,11 +104,12 @@ def read_leipzig(paths, cyr_only):
                 uz[key] = uz.get(key, 0) + f
     # Kirill imlo xatolari (сҳу = шу) shovqin: ajratilgan shakl ш/ч li shakldan kamida 3 marta ko'p bo'lsin.
     sh_split = {k: f for k, f in sh_split.items() if f >= 3 * joined.get(k, 0)}
-    return uz, sh_split
+    return uz, sh_split, cyr
 
 
 def uz_weight(f):
-    return round(min(4.5, max(1.0, math.log10(f) + 1.0)), 2)
+    # 6.0 gacha: apostrof tiklashda haqiqiy nisbat kerak (bo'lib ≫ bolib). Til dalili baribir 4.5 da kesiladi.
+    return round(min(6.0, max(1.0, math.log10(f) + 1.0)), 2)
 
 
 def read_scowl(root):
@@ -153,13 +156,22 @@ def main():
     ap.add_argument("--context-top", type=int, default=20000)
     a = ap.parse_args()
 
-    uz, sh_split = read_leipzig(a.leipzig, a.leipzig_cyrillic_only)
+    uz, sh_split, cyr = read_leipzig(a.leipzig, a.leipzig_cyrillic_only)
     en = read_scowl(a.scowl)
 
     items = [(k, f) for k, f in uz.items() if f >= a.min_freq]
     keep = {k: f for k, f in items if risky(k)}
     for k, f in sorted(items, key=lambda kv: -kv[1])[: a.context_top]:
         keep[k] = f
+    # Apostrof tiklash uchun o'/g' siz shakl: haqiqiy so'zmi (qo'l / qol, bo'r / bor) — buni faqat kirill
+    # matn aytadi. Lotin korpusidagi "bolgan", "kora" — shoshib yozilgan xato, lug'atga kirmaydi.
+    for k in list(keep):
+        if "o'" in k or "g'" in k:
+            bare = k.replace("o'", "o").replace("g'", "g")
+            if cyr.get(bare, 0) >= a.min_freq:
+                keep[bare] = cyr[bare]
+            else:
+                keep.pop(bare, None)
     uz_out = sorted((k, uz_weight(f)) for k, f in keep.items())
     en_out = sorted(en.items())
     split_out = sorted((k, f) for k, f in sh_split.items() if f >= 2)

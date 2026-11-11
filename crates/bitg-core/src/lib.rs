@@ -32,6 +32,8 @@ pub struct Options {
     pub cyrillic: bool,
     /// Hech qachon o'girilmaydigan so'zlar (kichik harfda, tutuq `'` ko'rinishida — `chars::fold_key`).
     pub exceptions: Vec<String>,
+    /// Tushib qolgan apostrofni lug'atdan tiklash: "ozbek" → "özbek", "togri" → "töğri".
+    pub restore_apostrophes: bool,
 }
 
 impl Default for Options {
@@ -41,6 +43,7 @@ impl Default for Options {
             english_guard: true,
             cyrillic: true,
             exceptions: Vec::new(),
+            restore_apostrophes: true,
         }
     }
 }
@@ -93,10 +96,10 @@ fn tokens(text: &str) -> Vec<Tok> {
                     clause_end: false,
                 });
             }
-            if c == '\n' || c == '…' {
-                if let Some(last) = v.last_mut() {
-                    last.sentence_end = true;
-                }
+            if (c == '\n' || c == '…')
+                && let Some(last) = v.last_mut()
+            {
+                last.sentence_end = true;
             }
         } else if start.is_none() {
             start = Some(i);
@@ -164,6 +167,8 @@ fn english_blocks(core: &str, own: f32, ctx: f32) -> bool {
 
 /// SCOWL 10/20 darajasidagi (eng ko'p uchraydigan) inglizcha so'zning dalili.
 const STRONG_ENGLISH: f32 = -3.0;
+/// Kontekst shundan inglizcharoq bo'lsa apostrof tiklanmaydi ("Gogol ozone ...").
+const RESTORE_CTX_MIN: f32 = -1.0;
 
 /// Bitta tokenni o'giradi (kontekst bilan). `quote_open` — oldingi so'zlarda ochilgan tirnoq ('Yaxshi tong').
 fn convert_token(
@@ -207,6 +212,17 @@ fn convert_token(
     }
     if trail.chars().any(is_apostrophe) {
         *quote_open = false;
+    }
+
+    // Tushib qolgan apostrof (ozbek → o'zbek). Inglizcha gap ichida emas; istisno so'zlarga tegilmaydi.
+    let restored;
+    if opts.restore_apostrophes
+        && ctx > RESTORE_CTX_MIN
+        && !opts.is_exception(core)
+        && let Some(r) = lang::restore_apostrophes(core)
+    {
+        restored = r;
+        core = &restored;
     }
 
     // Yolg'iz "o'" / "g'" (rock 'n' roll, "o' ..." ) — so'z emas, tirnoq yoki qisqartma.

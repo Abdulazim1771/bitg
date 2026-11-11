@@ -92,6 +92,9 @@ pub fn parse(settings: &str, exceptions: &str) -> Config {
             "enabled" => c.enabled = flag(v).unwrap_or(c.enabled),
             "english_guard" => c.opts.english_guard = flag(v).unwrap_or(c.opts.english_guard),
             "cyrillic" => c.opts.cyrillic = flag(v).unwrap_or(c.opts.cyrillic),
+            "restore_apostrophes" => {
+                c.opts.restore_apostrophes = flag(v).unwrap_or(c.opts.restore_apostrophes)
+            }
             "undo_backspace" => c.undo_backspace = flag(v).unwrap_or(c.undo_backspace),
             "fallback" => c.fallback = flag(v).unwrap_or(c.fallback),
             "disabled_apps" => {

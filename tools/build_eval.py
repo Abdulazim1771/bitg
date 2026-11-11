@@ -100,6 +100,12 @@ def main():
             old = translit(s, OLD, rnd.choice(OLD_APOS))
             new = translit(s, NEW)
             o.write(f"uz\t{old}\t{new}\n")
+    # Shoshib yozilgan matn: o'/g' dagi apostrof tushib qolgan ("ozbek", "togri") — tiklanishi kerak.
+    noapos = dict(OLD, **{"ў": "o", "ғ": "g"})
+    with open(os.path.join(OUT, "uz_noapos.tsv"), "w", encoding="utf-8", newline="\n") as o:
+        o.write("# o'zbekcha, apostrofsiz: kirish = o'/g' apostrofsiz eski lotin, kutilgan = yangi lotin\n")
+        for s in uz[a.limit: 2 * a.limit]:
+            o.write(f"uz-noapos\t{translit(s, noapos, rnd.choice(OLD_APOS))}\t{translit(s, NEW)}\n")
     print(f"en={min(len(en), a.limit)} uz={min(len(uz), a.limit)}")
 
 

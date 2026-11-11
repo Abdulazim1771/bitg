@@ -109,10 +109,11 @@ pub fn is_protected(token: &str) -> bool {
         }
     }
     // Domen oxirgi nuqtasiz bo'lsa ham: "kun.uz" yuqorida ushlangan; "gmail.com." ham.
-    if let Some((_, tld)) = lower.rsplit_once('.') {
-        if TLDS.contains(&tld) && lower.len() > tld.len() + 1 {
-            return true;
-        }
+    if let Some((_, tld)) = lower.rsplit_once('.')
+        && TLDS.contains(&tld)
+        && lower.len() > tld.len() + 1
+    {
+        return true;
     }
     // Raqam va harf aralash (shahar123, a1b2) — parol, kod, model nomi. "5-sinf", "2026-yil" — emas.
     let has_digit = chars.iter().any(|c| c.is_ascii_digit());

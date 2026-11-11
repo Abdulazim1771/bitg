@@ -232,10 +232,10 @@ impl ITfTextEditSink_Impl for TextService_Impl {
 impl TextService_Impl {
     fn unwatch(&self) {
         let old = self.state.borrow_mut().watched.take();
-        if let Some((ctx, cookie)) = old {
-            if let Ok(src) = ctx.cast::<ITfSource>() {
-                let _ = unsafe { src.UnadviseSink(cookie) };
-            }
+        if let Some((ctx, cookie)) = old
+            && let Ok(src) = ctx.cast::<ITfSource>()
+        {
+            let _ = unsafe { src.UnadviseSink(cookie) };
         }
     }
 

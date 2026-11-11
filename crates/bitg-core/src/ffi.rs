@@ -9,6 +9,8 @@ use crate::{OldStyle, Options, Session};
 pub const BITG_NO_ENGLISH_GUARD: u32 = 1;
 pub const BITG_NO_CYRILLIC: u32 = 2;
 pub const BITG_ASCII_TUTUQ: u32 = 4;
+/// Tushib qolgan apostrofni tiklamaslik ("ozbek" o'zgarmay qoladi).
+pub const BITG_NO_RESTORE: u32 = 8;
 
 fn opts(flags: u32) -> Options {
     Options {
@@ -20,6 +22,7 @@ fn opts(flags: u32) -> Options {
             crate::chars::DEFAULT_TUTUQ
         },
         exceptions: Vec::new(),
+        restore_apostrophes: flags & BITG_NO_RESTORE == 0,
     }
 }
 
