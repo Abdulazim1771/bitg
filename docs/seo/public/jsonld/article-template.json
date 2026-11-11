@@ -1,0 +1,25 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Article",
+      "headline": "{{h1}}",
+      "description": "{{description}}",
+      "inLanguage": "{{lang}}",
+      "datePublished": "{{published}}",
+      "dateModified": "{{modified}}",
+      "author": { "@type": "Person", "name": "{{muallif}}", "url": "https://bitg.uz/haqida/" },
+      "publisher": { "@id": "https://bitg.uz/#org" },
+      "mainEntityOfPage": "https://bitg.uz{{slug}}",
+      "image": "https://bitg.uz/og{{slug}}.png"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "bitg", "item": "https://bitg.uz/" },
+        { "@type": "ListItem", "position": 2, "name": "{{bolim}}", "item": "https://bitg.uz{{bolim_slug}}" },
+        { "@type": "ListItem", "position": 3, "name": "{{h1}}", "item": "https://bitg.uz{{slug}}" }
+      ]
+    }
+  ]
+}

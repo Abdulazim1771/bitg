@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 1-to'lqin. Build vaqtida sahifalar.json'dan avtomatik generatsiya qilinsin; lastmod = sahifaning haqiqiy o'zgargan sanasi. Faqat 200 qaytaradigan URL. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://bitg.uz/</loc>
+    <lastmod>2026-11-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://bitg.uz/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://bitg.uz/ru/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bitg.uz/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bitg.uz/"/>
+  </url>
+  <url><loc>https://bitg.uz/yuklab-olish/</loc><lastmod>2026-11-13</lastmod></url>
+  <url><loc>https://bitg.uz/konvertor/</loc><lastmod>2026-11-13</lastmod></url>
+  <url>
+    <loc>https://bitg.uz/yangi-alifbo/</loc>
+    <lastmod>2026-11-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://bitg.uz/yangi-alifbo/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://bitg.uz/ru/novyy-uzbekskiy-alfavit/"/>
+  </url>
+  <url><loc>https://bitg.uz/yangi-alifbo-qonuni/</loc><lastmod>2026-11-13</lastmod></url>
+  <url><loc>https://bitg.uz/yangi-harflarni-yozish/</loc><lastmod>2026-11-13</lastmod></url>
+  <url><loc>https://bitg.uz/klaviatura/</loc><lastmod>2026-11-13</lastmod></url>
+  <url><loc>https://bitg.uz/klaviatura/windows/</loc><lastmod>2026-11-13</lastmod></url>
+  <url><loc>https://bitg.uz/savollar/</loc><lastmod>2026-11-13</lastmod></url>
+  <url><loc>https://bitg.uz/qiyoslash/</loc><lastmod>2026-11-13</lastmod></url>
+  <url><loc>https://bitg.uz/haqida/</loc><lastmod>2026-11-13</lastmod></url>
+  <url><loc>https://bitg.uz/maxfiylik/</loc><lastmod>2026-11-13</lastmod></url>
+  <url>
+    <loc>https://bitg.uz/ru/</loc>
+    <lastmod>2026-11-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://bitg.uz/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://bitg.uz/ru/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bitg.uz/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bitg.uz/"/>
+  </url>
+  <url>
+    <loc>https://bitg.uz/ru/novyy-uzbekskiy-alfavit/</loc>
+    <lastmod>2026-11-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://bitg.uz/yangi-alifbo/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://bitg.uz/ru/novyy-uzbekskiy-alfavit/"/>
+  </url>
+  <url>
+    <loc>https://bitg.uz/en/</loc>
+    <lastmod>2026-11-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://bitg.uz/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://bitg.uz/ru/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bitg.uz/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bitg.uz/"/>
+  </url>
+</urlset>

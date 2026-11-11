@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bitg.uz ishga tushirish</title>
+<style>
+:root{--bg:#f6f6f3;--card:#fff;--ink:#16181d;--mute:#5d6470;--line:#e3e3de;--acc:#2f62c0;--acc-soft:#e8eefa;--ok:#1f8a4c;--ok-soft:#e6f4ec;--warn:#9a5b00;--warn-soft:#fdf1dd;--code:#f0f0ec}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1117;--card:#171a22;--ink:#e9eaee;--mute:#9aa1ad;--line:#2a2e39;--acc:#8fb0ea;--acc-soft:#1c2740;--ok:#5cc58a;--ok-soft:#15281e;--warn:#e7b25a;--warn-soft:#2c2414;--code:#1e222c}}
+:root[data-theme="dark"]{--bg:#0f1117;--card:#171a22;--ink:#e9eaee;--mute:#9aa1ad;--line:#2a2e39;--acc:#8fb0ea;--acc-soft:#1c2740;--ok:#5cc58a;--ok-soft:#15281e;--warn:#e7b25a;--warn-soft:#2c2414;--code:#1e222c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Inter,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:32px 16px 80px}
+h1{font-size:30px;line-height:1.2;margin:0 0 8px;letter-spacing:-.01em}
+h2{font-size:21px;margin:0 0 4px}
+.lead{color:var(--mute);margin:0 0 20px}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:24px}
+.prog{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+.prog-t{font-size:14px;color:var(--mute);margin-top:6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 24px;font-size:14px;color:var(--mute)}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.me{background:var(--acc-soft);color:var(--acc)}
+.tag.cl{background:var(--ok-soft);color:var(--ok)}
+.tag.t{background:var(--code);color:var(--mute)}
+.phase{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:0 0 20px}
+.phase>p{color:var(--mute);margin:0 0 12px}
+.step{border-top:1px solid var(--line);padding:14px 0 6px;display:grid;grid-template-columns:28px 1fr;gap:10px}
+.step>div{min-width:0}
+.step input{width:20px;height:20px;margin-top:3px;accent-color:var(--acc);cursor:pointer}
+.step.done .st{text-decoration:line-through;color:var(--mute)}
+.st{font-weight:600}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 6px}
+ol,ul{margin:6px 0 8px;padding-left:20px}
+li{margin:3px 0}
+code{background:var(--code);border-radius:6px;padding:1px 6px;font:13.5px ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}
+pre{background:var(--code);border-radius:10px;padding:12px;overflow-x:auto;white-space:pre-wrap;font:13px/1.5 ui-monospace,Consolas,monospace;margin:8px 0}
+.note{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14.5px;margin:8px 0}
+.ok{background:var(--ok-soft);color:var(--ok);border-radius:10px;padding:10px 12px;font-size:14.5px;margin:8px 0}
+a{color:var(--acc)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:8px 0}
+td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{color:var(--mute);font-weight:600}
+.tw{overflow-x:auto}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+button.th{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:6px 10px;cursor:pointer;font:inherit;font-size:14px}
+button.rs{background:none;border:none;color:var(--mute);cursor:pointer;font:inherit;font-size:13px;text-decoration:underline;padding:0}
+small{color:var(--mute)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>bitg.uz — ishga tushirish qo'llanmasi</h1>
+      <p class="lead">Siz qo'lda bajaradigan ishlar, qadamma-qadam. Belgilagan qadamlaringiz shu brauzerda eslab qolinadi. Tuzilgan: 2026-11-12.</p>
+    </div>
+    <button class="th" id="th" type="button" aria-label="Mavzuni almashtirish">◐</button>
+  </div>
+
+  <div class="bar">
+    <div class="prog"><i id="pi"></i></div>
+    <div class="prog-t"><span id="pt">0 / 0 bajarildi</span><button class="rs" id="rs" type="button">belgilarni tozalash</button></div>
+  </div>
+
+  <div class="legend">
+    <span class="tag me">Siz</span> sizning akkauntingiz yoki domen paneli kerak
+    <span class="tag cl">Claude</span> «shuni qil» desangiz, men qilaman
+  </div>
+
+  <section class="phase">
+    <h2>0. Hozir — domen ochilguncha</h2>
+    <p>bitg.uz hali ishlamaydi. Bu vaqtda faqat tayyorgarlik.</p>
+
+    <div class="step"><input type="checkbox" id="s0a"><div>
+      <div class="st">bitg.dtwin.uz'ni hech qayerga «indekslash uchun» yubormang</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">0 daqiqa</span></div>
+      Search Console, Yandex yoki Bing'ga <b>bitg.dtwin.uz</b>ni qo'shmang. Hammasi <b>bitg.uz</b> ochilgandan keyin bitg.uz nomi bilan qilinadi — aks holda Google ikki manzilni ikki xil sayt deb hisoblaydi.
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s0b"><div>
+      <div class="st">Telegram kanal @bitguz ni to'ldiring</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">10 daqiqa</span></div>
+      <ol>
+        <li>Kanal → Edit → <b>Description</b> ga shu jumlani qo'ying (hamma joyda bir xil bo'lishi muhim):<pre>bitg — yozayotganingizda o‘zbek matnini yangi alifboga (ö ğ ş ç) avtomatik o‘giradigan bepul, ochiq kodli dastur. Windows. bitg.uz</pre></li>
+        <li>Kanal rasmi — logo: <code>D:\Projects\bitg\site\logo\png\bitg-icon-512.png</code></li>
+        <li>Birinchi postni yozib, <b>pin</b> qiling (matn: <code>docs/seo/hooklar.md</code> → «Ishga tushish posti»). Havolani hozircha <code>bitg.dtwin.uz</code> qilib qo'ying, domen ochilgach tahrirlaysiz.</li>
+      </ol>
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s0c"><div>
+      <div class="st">@bitguzbot ni BotFather'da sozlang</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">10 daqiqa</span></div>
+      Telegram'da <a href="https://t.me/BotFather">@BotFather</a> ga yozing:
+      <ol>
+        <li><code>/setdescription</code> → @bitguzbot → <i>«Matn yuboring — yangi alifboda qaytaraman. Istalgan chatda: @bitguzbot matn»</i></li>
+        <li><code>/setabouttext</code> → qisqa jumla + <code>bitg.uz</code></li>
+        <li><code>/setuserpic</code> → logo</li>
+        <li><code>/setinline</code> → yoqing, placeholder: <i>«matn yozing…»</i> (istalgan chatda ishlashi uchun — eng kuchli tarqatish yo'li)</li>
+        <li><code>/setcommands</code>:<pre>start - Boshlash
+eski - Yangi alifbodan eski lotinga
+yordam - Qanday ishlatish</pre></li>
+      </ol>
+      <div class="note">Bot tokenini chatga yozmang. Botning o'zini (kod, server) men yozib, dtwin'da ishga tushirib beraman — tokenni server sozlamasiga o'zingiz qo'yasiz.</div>
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s0d"><div>
+      <div class="st">Telegram bot kodini yozish va ishga tushirish</div>
+      <div class="meta"><span class="tag cl">Claude</span><span class="tag t">1–2 soat</span></div>
+      Menga ayting: <b>«@bitguzbot ni yozib, ishga tushir»</b>. bitg yadrosi bilan: oddiy xabar → yangi alifbo, <code>/eski</code> → eski lotin, inline rejim, javob ostida «bitg.uz» havolasi.
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s0e"><div>
+      <div class="st">Saytdagi imlo tuzatilgan versiyani chiqarish</div>
+      <div class="meta"><span class="tag cl">Claude</span><span class="tag t">10 daqiqa</span></div>
+      <code>web/index.html</code> endi eski imloda («Yuklab olish», «uchun»), «Yangi» tugmasi sahifani yangi alifboga o'giradi, footer'da Telegram havolalari bor. Lokal tekshirilgan, hali commit/deploy qilinmagan. Menga ayting: <b>«commit qil va deploy qil»</b>.
+    </div></div>
+  </section>
+
+  <section class="phase">
+    <h2>1. Domen ochilgan kun — DNS</h2>
+    <p>Domen sotib olingan joyning (registrator) DNS panelida qilinadi.</p>
+
+    <div class="step"><input type="checkbox" id="s1a"><div>
+      <div class="st">bitg.uz ni dtwin serveriga yo'naltiring</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">5 daqiqa + kutish</span></div>
+      <ol>
+        <li>Server IP manzilini bilib oling: <code>nslookup bitg.dtwin.uz</code> — chiqqan IP'ga bitg.uz ham borishi kerak.</li>
+        <li>Registrator panelida DNS yozuvlari:
+          <div class="tw"><table><tr><th>Turi</th><th>Nomi (Host)</th><th>Qiymati</th></tr>
+          <tr><td>A</td><td><code>@</code></td><td>yuqoridagi IP</td></tr>
+          <tr><td>A</td><td><code>www</code></td><td>yuqoridagi IP</td></tr></table></div>
+        </li>
+        <li>Tekshirish (5 daqiqadan bir necha soatgacha): <code>nslookup bitg.uz</code> → o'sha IP chiqishi kerak.</li>
+      </ol>
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s1b"><div>
+      <div class="st">Edge (Caddy), 301 yo'naltirish va saytni bitg.uz'ga o'tkazish</div>
+      <div class="meta"><span class="tag cl">Claude</span><span class="tag t">30 daqiqa</span></div>
+      DNS ishlagach menga ayting: <b>«bitg.uz ni edge'ga ula va saytni ko'chir»</b>. Men qilaman:
+      <ul>
+        <li>dtwin edge'ga <code>bitg.uz</code> bloki (HTTPS sertifikat avtomatik), <code>www.bitg.uz</code> → <code>bitg.uz</code>;</li>
+        <li><code>bitg.dtwin.uz/*</code> → <code>bitg.uz/*</code> doimiy (301) yo'naltirish;</li>
+        <li>saytdagi canonical, og:url, sitemap, robots.txt → bitg.uz; <code>llms.txt</code> qo'shish; deploy;</li>
+        <li>tekshiruv: <code>curl -I https://bitg.dtwin.uz/</code> → 301 → bitg.uz.</li>
+      </ul>
+      <div class="note">dtwin edge faqat dtwin repo deploy orqali o'zgartiriladi — serverda qo'lda tahrir qilinmaydi.</div>
+    </div></div>
+  </section>
+
+  <section class="phase">
+    <h2>2. Google Search Console</h2>
+    <p>Google — O'zbekistonda qidiruvning ~75–78%. Asosiy panel.</p>
+
+    <div class="step"><input type="checkbox" id="s2a"><div>
+      <div class="st">Domenni Google'da tasdiqlash</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">10 daqiqa</span></div>
+      <ol>
+        <li><a href="https://search.google.com/search-console">search.google.com/search-console</a> → Google akkauntingiz bilan kiring.</li>
+        <li><b>Add property</b> → chap tomondagi <b>Domain</b> → <code>bitg.uz</code> → Continue.</li>
+        <li>Google <code>google-site-verification=...</code> ko'rinishidagi TXT yozuv beradi → nusxalang.</li>
+        <li>Registrator DNS panelida: turi <b>TXT</b>, nomi <code>@</code>, qiymati — o'sha matn. Saqlang.</li>
+        <li>Search Console'ga qaytib <b>Verify</b>. «Topilmadi» desa — 15–60 daqiqadan keyin qayta bosing.</li>
+      </ol>
+      <div class="ok">«Domain» turi www, http va https'ning hammasini birdan qamraydi — eng to'g'ri tanlov.</div>
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s2b"><div>
+      <div class="st">Sitemap yuborish</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">2 daqiqa</span></div>
+      Chap menyu → <b>Sitemaps</b> → <code>sitemap.xml</code> yozing → <b>Submit</b>. Holat «Success» bo'lishi kerak.
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s2c"><div>
+      <div class="st">Muhim sahifalarni indekslashga so'rash</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">15 daqiqa</span></div>
+      Yuqoridagi qidiruv qatoriga URL'ni yozing → <b>Request indexing</b>. Kuniga cheklov bor, shu tartibda:
+      <ol>
+        <li><code>https://bitg.uz/</code></li>
+        <li>yangi sahifalar qo'shilganda: <code>/yangi-alifbo/</code>, <code>/konvertor/</code>, <code>/yangi-harflarni-yozish/</code>, <code>/klaviatura/windows/</code>, <code>/yuklab-olish/</code>, <code>/savollar/</code>, <code>/yangi-alifbo-qonuni/</code></li>
+      </ol>
+    </div></div>
+  </section>
+
+  <section class="phase">
+    <h2>3. Bing Webmaster va IndexNow</h2>
+    <p>ChatGPT qidiruvi va Microsoft Copilot Bing indeksidan oladi.</p>
+
+    <div class="step"><input type="checkbox" id="s3a"><div>
+      <div class="st">Bing'ga Search Console'dan import</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">5 daqiqa</span></div>
+      <ol>
+        <li><a href="https://www.bing.com/webmasters">bing.com/webmasters</a> → Google (yoki Microsoft) akkaunt bilan kiring.</li>
+        <li><b>Import your sites from Google Search Console</b> → ruxsat bering → <code>bitg.uz</code> → Import.</li>
+        <li>Sayt va sitemap avtomatik o'tadi, alohida tasdiqlash shart emas.</li>
+      </ol>
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s3b"><div>
+      <div class="st">IndexNow kaliti va avtomatik yuborish</div>
+      <div class="meta"><span class="tag cl">Claude</span><span class="tag t">20 daqiqa</span></div>
+      Men kalit yarataman, <code>bitg.uz/&lt;kalit&gt;.txt</code> faylini qo'yaman va har deploy'dan keyin o'zgargan sahifalarni Bing va Yandex'ga darhol xabar qiladigan qadam qo'shaman. Ayting: <b>«IndexNow'ni ula»</b>.
+    </div></div>
+  </section>
+
+  <section class="phase">
+    <h2>4. Yandex Webmaster</h2>
+    <p>Yandex O'zbekistonda ~16–24% (telefonda ko'proq); Alisa AI javoblari ham shu indeksdan.</p>
+
+    <div class="step"><input type="checkbox" id="s4a"><div>
+      <div class="st">Saytni qo'shish va tasdiqlash</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">10 daqiqa</span></div>
+      <ol>
+        <li><a href="https://webmaster.yandex.com">webmaster.yandex.com</a> → Yandex ID bilan kiring.</li>
+        <li><b>Add site</b> → <code>https://bitg.uz</code>.</li>
+        <li>Tasdiqlash: <b>DNS record</b> → <code>yandex-verification: ...</code> TXT yozuvini registrator panelida <code>@</code> ga qo'shing → <b>Check</b>.<br>
+          <small>Yoki «Meta tag» ni tanlab, kodni menga yuboring — saytga qo'yib, deploy qilaman.</small></li>
+      </ol>
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s4b"><div>
+      <div class="st">Sitemap, mintaqa va qayta ko'rish</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">5 daqiqa</span></div>
+      <ol>
+        <li><b>Indexing → Sitemap files</b> → <code>https://bitg.uz/sitemap.xml</code> → Add.</li>
+        <li><b>Site information → Regional settings</b> → mintaqa: <b>O'zbekiston</b> (yoki Toshkent).</li>
+        <li><b>Indexing → Reindex pages</b> → bosh sahifa va asosiy sahifalar.</li>
+      </ol>
+    </div></div>
+  </section>
+
+  <section class="phase">
+    <h2>5. Tashqi manbalar</h2>
+    <p>AI javoblari ko'pincha boshqa saytlardagi tilga olinishlarga tayanadi.</p>
+
+    <div class="step"><input type="checkbox" id="s5a"><div>
+      <div class="st">GitHub repo: ochiq qilish va bitg.uz havolasi</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">5 daqiqa</span></div>
+      <ol>
+        <li><a href="https://github.com/dtwinuz/bitg/settings">github.com/dtwinuz/bitg/settings</a> → pastda <b>Change visibility</b> → Public (saytda «ochiq kod» deyilgani uchun kerak).</li>
+        <li>Repo bosh sahifasi → o'ngdagi ⚙ (About) → Website: <code>https://bitg.uz</code>; Topics: <code>uzbek</code>, <code>alphabet</code>, <code>keyboard</code>, <code>transliteration</code>, <code>ime</code>, <code>windows</code>.</li>
+      </ol>
+      <div class="note">Public qilishdan oldin menga ayting — repoda sir yoki parol qolmaganini tekshirib beraman.</div>
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s5b"><div>
+      <div class="st">winget (Windows paket menejeri)</div>
+      <div class="meta"><span class="tag cl">Claude</span><span class="tag t">30 daqiqa</span></div>
+      Men manifest tayyorlab, <code>microsoft/winget-pkgs</code> ga PR ochaman — shundan keyin <code>winget install bitg</code> ishlaydi. Shart: MSI GitHub Releases'da ochiq turishi.
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s5c"><div>
+      <div class="st">Microsoft Store (ixtiyoriy, keyinroq)</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">1 soat</span></div>
+      <a href="https://partner.microsoft.com/dashboard">Partner Center</a>'da dasturchi akkaunti ochiladi (shartlar va narxni sahifada tekshiring). Akkaunt bo'lgach, listingni men tayyorlab beraman.
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s5d"><div>
+      <div class="st">YouTube: 3 ta qisqa video</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">1–2 soat</span></div>
+      Ssenariy va hooklar: <code>docs/seo/hooklar.md</code> → «Qisqa video». Sarlavha eski imloda (masalan «Ş, Ç, Ğ, Ö ni kompyuterda qanday yozish»), tavsifda <code>bitg.uz</code>.
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s5e"><div>
+      <div class="st">Yangiliklar saytlariga xabar (press-reliz)</div>
+      <div class="meta"><span class="tag cl">Claude</span><span class="tag me">Siz</span><span class="tag t">matn — men, yuborish — siz</span></div>
+      Men qisqa press-reliz yozaman (uz/ru); siz kun.uz, daryo.uz, gazeta.uz, spot.uz tahririyatiga yuborasiz. Eng yaxshi vaqt — hukumat dasturi chiqqan kun (taxminan dekabr oxiri) va aprel boshi.
+    </div></div>
+  </section>
+
+  <section class="phase">
+    <h2>6. Ko'p sahifali sayt</h2>
+    <p>Kuchli SEO uchun bitta sahifa yetmaydi — 52 sahifa rejasi tayyor.</p>
+
+    <div class="step"><input type="checkbox" id="s6a"><div>
+      <div class="st">1-to'lqin: 15 sahifa</div>
+      <div class="meta"><span class="tag cl">Claude</span><span class="tag t">sayt agenti</span></div>
+      Sayt agentiga <code>docs/seo/SAYT-AGENTI-UCHUN.md</code> faylini bering yoki menga «1-to'lqinni qur» deng. Matnlar: <code>docs/seo/kontent/</code>, ro'yxat: <code>docs/seo/sahifalar.json</code>.
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s6b"><div>
+      <div class="st">Skrinshotlar: Android, iPhone, Mac</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">20 daqiqa</span></div>
+      Telefonda harfni bosib turganda ö ğ ş ç chiqishini skrinshot qiling (Android va iPhone); Mac bo'lsa — Option bilan yozish. Menga yuboring — tegishli sahifalarga qo'yaman.
+    </div></div>
+  </section>
+
+  <section class="phase">
+    <h2>7. Muntazam tekshiruv</h2>
+    <p>Natijani shu yerdan bilasiz.</p>
+
+    <div class="step"><input type="checkbox" id="s7a"><div>
+      <div class="st">1 haftadan keyin: indekslanganmi?</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">10 daqiqa</span></div>
+      Google'da <code>site:bitg.uz</code> deb qidiring. Search Console → <b>Pages</b>: indekslanganlar soni. Yandex Webmaster → <b>Indexing → Pages in search</b>.
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s7b"><div>
+      <div class="st">Har oy: qaysi so'rovlar bilan topishyapti</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag cl">Claude</span><span class="tag t">15 daqiqa</span></div>
+      Search Console → <b>Performance → Queries</b> → Export → menga yuboring. Tahlil qilib, yangi sahifa va matn yangilanishini taklif qilaman.
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s7c"><div>
+      <div class="st">Har oy: AI javoblarida bitg chiqyaptimi</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">20 daqiqa</span></div>
+      ChatGPT, Perplexity, Gemini, Copilot va Yandex Alisa'dan so'rang:
+      <ol>
+        <li>Yangi o'zbek alifbosi uchun kompyuter dasturi bormi?</li>
+        <li>Ş, Ç, Ğ, Ö ni Windows'da qanday yozaman?</li>
+        <li>Matnni yangi alifboga avtomatik o'giradigan dastur?</li>
+        <li>Как печатать новые узбекские буквы?</li>
+        <li>bitg nima?</li>
+      </ol>
+      Natija: chiqdimi / havola bormi / faktlar to'g'rimi. To'liq ro'yxat — <code>docs/seo/STRATEGIYA.md</code>, 9-bo'lim.
+    </div></div>
+
+    <div class="step"><input type="checkbox" id="s7d"><div>
+      <div class="st">Muhim sanalar</div>
+      <div class="meta"><span class="tag me">Siz</span><span class="tag t">eslatma</span></div>
+      <div class="tw"><table>
+        <tr><th>Qachon</th><th>Nima qilish</th></tr>
+        <tr><td>~2026-12 oxiri</td><td>hukumat dasturi chiqqan kuni menga xabar bering: sahifalar va press-reliz yangilanadi</td></tr>
+        <tr><td>2027-yil fevral</td><td>asosiy sahifalar indeksda bo'lishi kerak (cho'qqidan oldin)</td></tr>
+        <tr><td>2027-04-01…21</td><td>«22-aprelga tayyormisiz» kampaniyasi: Telegram, press</td></tr>
+        <tr><td><b>2027-04-22</b></td><td>qonun kuchga kiradi — eng katta qidiruv kuni</td></tr>
+        <tr><td>2027-09</td><td>maktab mavsumi: ota-ona va o'qituvchilar uchun post</td></tr>
+      </table></div>
+    </div></div>
+  </section>
+
+  <p style="color:var(--mute);font-size:14px">Batafsil strategiya: <code>docs/seo/STRATEGIYA.md</code> · domen ko'chishi texnik qadamlari: <code>docs/seo/ISHGA-TUSHIRISH.md</code></p>
+</div>
+<script>
+(function () {
+  var KEY = 'bitg-qollanma-v1', d = document.documentElement, st = {};
+  try { st = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { st = {}; }
+  try { var t = localStorage.getItem('bitg-qollanma-theme'); if (t) d.setAttribute('data-theme', t); } catch (e) {}
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.step input[type=checkbox]'));
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  function paint() {
+    var n = 0;
+    boxes.forEach(function (b) { var on = !!st[b.id]; b.checked = on; b.closest('.step').classList.toggle('done', on); if (on) n++; });
+    document.getElementById('pi').style.width = (boxes.length ? n / boxes.length * 100 : 0) + '%';
+    document.getElementById('pt').textContent = n + ' / ' + boxes.length + ' bajarildi';
+  }
+  boxes.forEach(function (b) { b.addEventListener('change', function () { st[b.id] = b.checked; save(); paint(); }); });
+  document.getElementById('rs').addEventListener('click', function () { st = {}; save(); paint(); });
+  document.getElementById('th').addEventListener('click', function () {
+    var cur = d.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    d.setAttribute('data-theme', next);
+    try { localStorage.setItem('bitg-qollanma-theme', next); } catch (e) {}
+  });
+  paint();
+})();
+</script>
+</body>
+</html>

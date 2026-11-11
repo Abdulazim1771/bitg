@@ -10,5 +10,7 @@ Second moment:     haqiqiy bitg yadrosi (Rust → WASM) bilan sinov maydoni va b
 Differentiators:   1) yozayotganda o'zi o'giradi, 2) inglizcha/havola/kodga tegmaydi, 3) ⌫ bilan qaytadi
 Deliberately off:  to'qima raqam va sharh, brend logolari, uzun paragraf, har bo'limga fade-up, gradient blob
 
-Matn yangi alifboda yozilgan; "Eski" tugmasi uni bitg yadrosi (`to_old`) bilan o'giradi.
+Matn eski imloda yozilgan (qidiruv tizimlari shuni indekslaydi, odamlar shunday qidiradi); "Yangi" tugmasi uni bitg
+yadrosi (`toNew`) bilan o'giradi, tanlov eslab qolinadi. Demo va misollar `data-no-conv`; uning ichidagi UI yorlig'i
+`data-conv`. Apostrof: o‘ g‘ = U+2018, tutuq = U+2019.
 Demo natijalari `bitg` CLI va WASM chiqishidan olingan (README'dagi misollar bilan bir xil yadro).

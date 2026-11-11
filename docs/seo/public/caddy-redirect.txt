@@ -1,0 +1,33 @@
+# dtwin edge Caddyfile uchun bloklar (faqat dtwin repo deploy orqali qo'llanadi, qo'lda tahrir/docker cp yo'q).
+# /srv/bitg — web/ build chiqishi turgan papka (edge'dagi haqiqiy yo'lga moslang).
+
+bitg.uz {
+	encode zstd gzip
+	root * /srv/bitg
+	try_files {path} {path}/index.html
+	file_server
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+	@static path *.woff2 *.wasm *.svg *.png *.ico *.css *.js
+	header @static Cache-Control "public, max-age=604800"
+	@html path / *.html */
+	header @html Cache-Control "public, max-age=300"
+
+	handle_errors {
+		@404 expression {err.status_code} == 404
+		rewrite @404 /404.html
+		file_server
+	}
+}
+
+www.bitg.uz {
+	redir https://bitg.uz{uri} permanent
+}
+
+bitg.dtwin.uz {
+	redir https://bitg.uz{uri} permanent
+}

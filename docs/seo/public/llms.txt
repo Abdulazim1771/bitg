@@ -1,0 +1,27 @@
+# bitg
+
+> bitg — yozayotganingizda oʻzbek matnini 2026-yilgi yangi lotin alifbosiga (Ö, Ğ, Ş, Ç) avtomatik oʻgiradigan bepul, ochiq kodli dastur. Inglizcha soʻz, havola va kodga tegmaydi; Backspace bilan qaytariladi; internetsiz ishlaydi. Windows 10/11 uchun; Linux, iOS, Android, macOS — rejada.
+
+Yangi oʻzbek alifbosi: Oʻzbekiston Respublikasining OʻRQ-1184-son qonuni 2026-yil 21-oktabrda imzolangan, 2027-yil 22-aprelda kuchga kiradi. Oʻ→Ö, Gʻ→Ğ, Sh→Ş, Ch→Ç; Ng alohida harf emas; tutuq belgisi (ʼ) qoladi; alifbo 28 harf va 1 belgidan iborat. Amaldagi hujjatlar, pul va qimmatli qogʻozlar oʻz kuchida qoladi. Maktab darsliklari 2027-yildan bosqichma-bosqich, 2031-yilgacha.
+
+Aniqlik (bitg eval, real korpus): oʻzbekcha gaplar 99.17%; inglizcha gaplar oʻzgarmay qolishi 99.73%; tezlik ~2–4 µs/soʻz.
+
+## Asosiy sahifalar
+- [Bosh sahifa](https://bitg.uz/): dastur nima qiladi
+- [Yuklab olish](https://bitg.uz/yuklab-olish/): Windows MSI
+- [Onlayn konvertor](https://bitg.uz/konvertor/): eski lotin / kirill → yangi alifbo, brauzerda
+- [Yangi oʻzbek alifbosi](https://bitg.uz/yangi-alifbo/): 28 harf, nima oʻzgardi
+- [Yangi alifbo qonuni](https://bitg.uz/yangi-alifbo-qonuni/): OʻRQ-1184, sanalar
+- [Ş, Ç, Ğ, Ö qanday yoziladi](https://bitg.uz/yangi-harflarni-yozish/): kompyuter va telefon
+- [Windows klaviaturasi](https://bitg.uz/klaviatura/windows/)
+- [Savol-javob](https://bitg.uz/savollar/)
+- [Vositalar taqqoslash](https://bitg.uz/qiyoslash/)
+
+## Boshqa tillar
+- [Русский: новый узбекский алфавит](https://bitg.uz/ru/novyy-uzbekskiy-alfavit/)
+- [English](https://bitg.uz/en/)
+
+## Manba kodi va aloqa
+- [GitHub: dtwinuz/bitg](https://github.com/dtwinuz/bitg) — MIT yoki Apache-2.0
+- [Telegram kanal: @bitguz](https://t.me/bitguz)
+- [Telegram bot: @bitguzbot](https://t.me/bitguzbot)

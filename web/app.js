@@ -82,15 +82,16 @@
   function idle(f) { (window.requestIdleCallback || function (c) { setTimeout(c, 400); })(f); }
 
   // ---------- sahifa alifbosi: Yangi / Eski ----------
-  var abc = root.getAttribute('data-abc') === 'old' ? 'old' : 'new';
+  var abc = root.getAttribute('data-abc') === 'new' ? 'new' : 'old';
   var origText = new Map(), coreApi = null, origTitle = doc.title;
-  function T(s) { return abc === 'old' && coreApi ? coreApi.toOld(s) : s; }
+  function T(s) { return abc === 'new' && coreApi ? coreApi.toNew(s).out : s; }
   function textNodes() {
     var out = [], w = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
       acceptNode: function (n) {
         if (!n.data.trim()) return NodeFilter.FILTER_REJECT;
         var p = n.parentElement;
-        if (!p || p.closest('[data-no-conv],script,style,kbd,code,svg')) return NodeFilter.FILTER_REJECT;
+        var c = p && p.closest('[data-conv],[data-no-conv],script,style,kbd,code,svg');
+        if (!p || (c && !c.hasAttribute('data-conv'))) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       }
     });
@@ -101,9 +102,9 @@
     textNodes().forEach(function (n) {
       if (!origText.has(n)) origText.set(n, n.data);
       var o = origText.get(n);
-      n.data = abc === 'old' ? coreApi.toOld(o) : o;
+      n.data = T(o);
     });
-    doc.title = abc === 'old' ? coreApi.toOld(origTitle) : origTitle;
+    doc.title = T(origTitle);
     $$('[data-t]').forEach(function (e) { e.innerHTML = T(e.getAttribute('data-t')); });
     if (animate && !reduced()) {
       var m = $('main');
@@ -117,7 +118,7 @@
     $$('button[data-abc]').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.getAttribute('data-abc') === next));
     });
-    if (next === 'new' && !coreApi) return;
+    if (next === 'old' && !coreApi) return;
     core().then(function (c) { coreApi = c; applyAbc(animate); }, function () {});
   }
   $$('button[data-abc]').forEach(function (b) {
@@ -714,7 +715,7 @@
     tilmoch: '<kbd>[</kbd> ö &nbsp; <kbd>]</kbd> ğ &nbsp; <kbd>;</kbd> ş &nbsp; <kbd>\'</kbd> ç &nbsp; · &nbsp;belgilar <kbd>AltGr</kbd> bilan',
     turkish: '<kbd>,</kbd> ö &nbsp; <kbd>[</kbd> ğ &nbsp; <kbd>;</kbd> ş &nbsp; <kbd>.</kbd> ç &nbsp; <kbd>i</kbd> ı',
     altgr: 'Hamma tugma joyida: <kbd>AltGr</kbd> + <kbd>o</kbd> → ö',
-    kirill: 'Kirillça yozing: söz oxirida lotinga ögiriladi'
+    kirill: 'Kirillcha yozing: so‘z oxirida lotinga o‘giriladi'
   };
   var layKb = $('#bg-layout-kb'), layIn = $('#bg-layout-input'), hint = $('#bg-preset-hint'), preset = 'tilmoch';
   buildKb(layKb, true);
@@ -809,7 +810,7 @@
     flagBoxes.forEach(function (c) { if (!c.checked) f |= +c.getAttribute('data-flag'); });
     return f;
   }
-  var WHY = { e: 'inglizça söz', p: 'himoyalangan', x: 'istisno' };
+  var WHY = { e: 'inglizcha so‘z', p: 'himoyalangan', x: 'istisno' };
   function render() {
     if (!tryCore) return;
     var src = tryIn.value, t0 = performance.now();
@@ -881,14 +882,14 @@
     core().then(function (c) {
       coreApi = c; tryCore = c;
       render();
-      if (abc === 'old') applyAbc(false);
+      if (abc === 'new') applyAbc(false);
     }, function () {
       started = false;
       tryState.textContent = T('yadro yuklanmadi, sahifani yangilang');
       tryOut.classList.remove('is-loading');
     });
   }
-  if (abc === 'old') { setAbc('old', false); startCore(); }
+  if (abc === 'new') { setAbc('new', false); startCore(); }
   else if (doc.readyState === 'complete') idle(startCore);
   else window.addEventListener('load', function () { idle(startCore); });
   var trySec = $('#sinov');

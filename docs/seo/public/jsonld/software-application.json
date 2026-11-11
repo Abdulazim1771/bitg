@@ -1,0 +1,29 @@
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": "https://bitg.uz/#app",
+  "name": "bitg",
+  "alternateName": ["bitg yangi alifbo klaviaturasi", "bitig"],
+  "description": "Oʻzbek matnini yozish paytida 2026-yilgi yangi lotin alifbosiga (Ö, Ğ, Ş, Ç) avtomatik oʻgiradi. Inglizcha soʻz, havola va kodga tegmaydi, Backspace bilan qaytariladi, internetsiz ishlaydi.",
+  "applicationCategory": "UtilitiesApplication",
+  "applicationSubCategory": "Input method / keyboard",
+  "operatingSystem": "Windows 10, Windows 11",
+  "softwareVersion": "0.1.0",
+  "fileSize": "2.6 MB",
+  "downloadUrl": "https://bitg.uz/download/bitg-0.1.0-x64.msi",
+  "installUrl": "https://bitg.uz/yuklab-olish/",
+  "inLanguage": "uz",
+  "isAccessibleForFree": true,
+  "license": "https://github.com/dtwinuz/bitg#litsenziya",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "UZS" },
+  "publisher": { "@id": "https://bitg.uz/#org" },
+  "screenshot": "TODO: https://bitg.uz/og/bitg-screenshot.png",
+  "featureList": [
+    "Yozayotganda avtomatik oʻgirish (Oʻ→Ö, Gʻ→Ğ, Sh→Ş, Ch→Ç)",
+    "Inglizcha soʻz, URL, email va kodga tegmaydi",
+    "Backspace bilan bekor qilish",
+    "Kirill → yangi lotin",
+    "Klaviatura tartiblari: Tilmoch, Turkcha Q, AltGr, maxsus",
+    "Internetsiz, matn saqlanmaydi"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://bitg.uz/#org",
+      "name": "bitg",
+      "url": "https://bitg.uz/",
+      "logo": "https://bitg.uz/logo/png/bitg-icon-512.png",
+      "description": "bitg — yozayotganingizda oʻzbek matnini 2026-yilgi yangi alifboga (ö ğ ş ç) avtomatik oʻgiradigan bepul, ochiq kodli dastur.",
+      "sameAs": [
+        "https://github.com/dtwinuz/bitg",
+        "https://t.me/bitguz",
+        "https://t.me/bitguzbot",
+        "TODO: YouTube kanal",
+        "TODO: Microsoft Store / winget sahifasi"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://bitg.uz/#website",
+      "url": "https://bitg.uz/",
+      "name": "bitg",
+      "inLanguage": ["uz", "uz-Cyrl", "ru", "en"],
+      "publisher": { "@id": "https://bitg.uz/#org" }
+    }
+  ]
+}
