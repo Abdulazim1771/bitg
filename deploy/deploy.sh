@@ -30,7 +30,7 @@ WASM="$ROOT/target/site/wasm32-unknown-unknown/release/bitg_core.wasm"
 VER="$(sed -n 's/^version = "\(.*\)"/\1/p' "$STAGE/src/Cargo.toml" | head -1)"
 MSI="dist/bitg-$VER-x64.msi"
 [ -f "$MSI" ] || fail "$MSI yo'q (installer/build.ps1)"
-(cd dist && sha256sum -c "bitg-$VER-x64.msi.sha256" >/dev/null) || fail "$MSI sha256 mos emas"
+[ "$(sha256sum < "$MSI" | cut -d' ' -f1)" = "$(tr -d '\r' < "$MSI.sha256" | cut -d' ' -f1)" ] || fail "$MSI sha256 mos emas"
 grep -q "download/bitg-$VER-x64.msi" "$STAGE/src/web/index.html" || fail "index.html $VER MSI'ga havola bermaydi"
 
 SITE="$STAGE/out/site"
@@ -56,8 +56,13 @@ mv new/site site; rm -rf new
 docker compose up -d --force-recreate --remove-orphans
 echo '$SHA' > REVISION"
 
+# konteyner o'zi javob bersin (edge ulanmagan bo'lsa ham), keyin ommaviy manzil
 for _ in $(seq 1 20); do
-  if curl -fsS "$URL/version.txt" 2>/dev/null | grep -q "$SHA"; then echo "deploy tayyor: $SHA -> $URL"; exit 0; fi
+  if ssh "$HOST" "docker exec bitg-site wget -qO- http://127.0.0.1/version.txt" 2>/dev/null | grep -q "$SHA"; then
+    if curl -fsS "$URL/version.txt" 2>/dev/null | grep -q "$SHA"; then echo "deploy tayyor: $SHA -> $URL"
+    else echo "konteyner tayyor: $SHA ($URL hali javob bermadi: dtwin edge'da bitg bloki bormi?)"; fi
+    exit 0
+  fi
   sleep 3
 done
-fail "$URL/version.txt $SHA ni qaytarmadi (rollback: ssh $HOST 'cd $REMOTE_DIR && rm -rf site && mv site.prev site')"
+fail "bitg-site $SHA ni qaytarmadi (rollback: ssh $HOST 'cd $REMOTE_DIR && rm -rf site && mv site.prev site')"
