@@ -6,8 +6,8 @@ use windows::Win32::System::Com::{
 };
 use windows::Win32::System::LibraryLoader::GetModuleFileNameW;
 use windows::Win32::System::Registry::{
-    HKEY, HKEY_CLASSES_ROOT, KEY_WRITE, REG_OPTION_NON_VOLATILE, REG_SZ, RegCloseKey,
-    RegCreateKeyExW, RegDeleteTreeW, RegSetValueExW,
+    HKEY, HKEY_CLASSES_ROOT, HKEY_LOCAL_MACHINE, KEY_WRITE, REG_OPTION_NON_VOLATILE, REG_SZ,
+    RegCloseKey, RegCreateKeyExW, RegDeleteTreeW, RegSetValueExW,
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::HKL;
 use windows::Win32::UI::TextServices::{
@@ -134,6 +134,9 @@ pub fn unregister() -> Result<()> {
         if r.is_err() && r != ERROR_FILE_NOT_FOUND {
             r.ok()?;
         }
+        // TSF profil va toifalarni o'chirgach bo'sh kalitlarni qoldiradi — bu kalit faqat bitg'niki.
+        let tip = format!("SOFTWARE\\Microsoft\\CTF\\TIP\\{{{CLSID_BITG:?}}}");
+        let _ = RegDeleteTreeW(HKEY_LOCAL_MACHINE, &HSTRING::from(tip));
     }
     crate::log::write("unregistered");
     Ok(())

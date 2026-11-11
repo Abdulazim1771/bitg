@@ -17,10 +17,17 @@ fn main() {
 
 #[cfg(windows)]
 fn main() {
-    let tray_only = std::env::args().any(|a| a == "--tray");
-    if !system::first_instance() {
-        return; // birinchi nusxa oynasini ko'rsatadi
+    // --tray: foydalanuvchining o'z Run yozuvi; --autostart: o'rnatuvchining (barcha foydalanuvchilar) yozuvi.
+    let from_machine_run = std::env::args().any(|a| a == "--autostart");
+    if from_machine_run && !system::autostart_allowed() {
+        return; // shu foydalanuvchi Windows bilan ishga tushishni o'chirgan
     }
+    let tray_only = from_machine_run || std::env::args().any(|a| a == "--tray");
+    // Ikkinchi nusxa: oddiy ochilishda birinchisining oynasini ko'rsatadi, avtostartda jim chiqadi.
+    if !system::first_instance(!tray_only) {
+        return;
+    }
+    system::first_run_setup();
     if let Err(e) = app::run(tray_only) {
         eprintln!("bitg-settings: {e}");
         std::process::exit(1);
@@ -282,6 +289,15 @@ mod app {
                     let _ = std::fs::create_dir_all(&dir);
                     let _ = std::process::Command::new("explorer").arg(dir).spawn();
                 }
+            }
+            "add_keyboard" => {
+                if !system::add_keyboard() {
+                    // Siyosat taqiqlagan yoki API yo'q — foydalanuvchi o'zi qo'shadi.
+                    let _ = std::process::Command::new("explorer")
+                        .arg("ms-settings:regionlanguage")
+                        .spawn();
+                }
+                reply(p, status());
             }
             "open_language_settings" => {
                 let _ = std::process::Command::new("explorer")

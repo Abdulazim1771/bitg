@@ -73,14 +73,48 @@ flowchart LR
 | [`bitg-settings`](crates/bitg-settings) | sozlamalar oynasi: kalitlar, ro'yxatlar, jonli namuna (Windows, WebView2) |
 | [`bitg-tsf`](crates/bitg-tsf) | Windows matn kiritish xizmati (TSF TIP, Rust): tugmalarga tegmaydi — matn o'zgarishini kuzatadi (`ITfTextEditSink`) va so'zdan keyin probel yozilganda o'sha so'zni joyida almashtiradi. Hook, SendInput, clipboard yo'q |
 
-### Windows IME prototipini sinash
+### O'rnatish (Windows 10/11, x64)
+
+[Releases](https://github.com/dtwinuz/bitg/releases) dan `bitg-<versiya>-x64.msi` ni oching. O'rnatuvchi barcha
+foydalanuvchilar uchun ishlaydi. Oxirida bitg ochiladi va klaviaturani O'zbek (lotin) tiliga o'zi qo'shadi. So'ng
+**Win + Probel** bilan «bitg» ni tanlang. Yangilash ham shu fayl bilan qilinadi: ochiq dasturlarni (Chrome, Telegram)
+yopish va kompyuterni qayta yuklash shart emas.
+
+| Nima | Qayerda |
+|---|---|
+| Ilova (tray + sozlamalar), CLI, litsenziyalar | `C:\Program Files\bitg\` (CLI PATH'ga qo'shiladi) |
+| IME DLL | `C:\Program Files\bitg\ime\<versiya>\bitg_tsf.dll` — versiyali papka: yangi versiya ochiq dasturlarga xalaqit bermaydi |
+| Start menyusi | «bitg» |
+| Windows bilan ishga tushish | `HKLM\…\Run` (`--autostart`); har foydalanuvchi ilovadan o'chiradi → `HKCU\Software\bitg\Autostart=0` |
+| Foydalanuvchi sozlamalari | `%APPDATA%\bitg` — o'chirishda saqlanib qoladi |
+
+**Korporativ tarqatish** (GPO, Intune, SCCM, PDQ):
+
+```powershell
+msiexec /i bitg-0.1.0-x64.msi /qn /l*v bitg-install.log            # jim o'rnatish
+msiexec /i bitg-0.1.0-x64.msi /qn AUTOSTART=0 ADDKEYBOARD=0         # trayni va klaviaturani avtomatik qo'shmaslik
+msiexec /x bitg-0.1.0-x64.msi /qn                                   # o'chirish
+```
+
+| Xossa | Standart | Ma'nosi |
+|---|---|---|
+| `AUTOSTART` | `1` | barcha foydalanuvchilarda tray Windows bilan ishga tushadi |
+| `ADDKEYBOARD` | `1` | ilova birinchi ochilganda klaviaturani foydalanuvchining tillar ro'yxatiga qo'shadi (har kimda bir marta; o'chirsa qaytadan qo'shilmaydi) |
+
+Tanlov `HKLM\SOFTWARE\bitg` da saqlanadi, yangilashda eslab qolinadi (buyruq qatoridagi qiymat ustun). Qaytish kodlari
+standart: `0` muvaffaqiyat, `3010` qayta yuklash tavsiya etiladi, `1603` xato (sababi `/l*v` logida). DLL ochiq
+dasturlarda yuklangan holda **o'chirish** ~1 daqiqa olishi mumkin (Windows Installer band fayllarni tekshiradi). Fayl
+baribir o'chadi, qayta yuklash kerak emas.
+
+O'rnatuvchini qurish (WiX 5, .NET SDK): `pwsh installer/build.ps1` → `dist/bitg-<versiya>-x64.msi` + `.sha256`.
+`-CertThumbprint` yoki `BITG_SIGN_PFX` bilan binarlar va MSI imzolanadi (SHA-256, vaqt tamg'asi). `v*` tegi qo'yilsa,
+[`release`](.github/workflows/release.yml) workflow MSI'ni GitHub Release'ga chiqaradi.
+
+Ishlab chiqishda (MSI'siz):
 
 ```powershell
 cargo build --release -p bitg-tsf
-# administrator PowerShell:
-regsvr32 target\release\bitg_tsf.dll
-# Sozlamalar → Vaqt va til → Til → O'zbek (lotin) → Klaviatura qo'shish → "bitg", so'ng Win+Probel bilan tanlang
-# O'chirish: regsvr32 /u target\release\bitg_tsf.dll
+regsvr32 target\release\bitg_tsf.dll          # administrator; o'chirish: regsvr32 /u ...
 ```
 
 Log: `%LOCALAPPDATA%\bitg\tsf.log` — faqat dastur nomi va natija (`converted`, `word unchanged`, xato kodi);

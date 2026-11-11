@@ -577,7 +577,7 @@
       [status.ime, "Klaviatura xizmati o'rnatilgan", status.ime ? "Windows bitg'ni taniydi." : "bitg_tsf.dll ro'yxatdan o'tmagan — o'rnatuvchini qayta ishga tushiring.", null],
       [status.keyboard, status.keyboard ? "Klaviatura qo'shilgan" : "Klaviatura tillar ro'yxatida yo'q",
         status.keyboard ? "Win + Probel bilan «bitg» ni tanlang." : "O'zbek (lotin) tiliga «bitg» klaviaturasini qo'shing.",
-        status.keyboard ? null : ["Til sozlamalarini ochish", () => send({ cmd: "open_language_settings" })]],
+        status.keyboard ? null : ["Klaviaturani qo'shish", () => send({ cmd: "add_keyboard" })]],
       [status.autostart, status.autostart ? "Windows bilan ishga tushadi" : "Windows bilan ishga tushmaydi",
         status.autostart ? "Tray belgisi doim joyida." : "Kompyuter yonganda trayda chiqmaydi.",
         status.autostart ? null : ["Yoqish", () => send({ cmd: "autostart", on: true })]],

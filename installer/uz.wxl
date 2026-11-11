@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  O'rnatuvchi matnlari o'zbekcha. WixUI'ning inglizcha satrlarini (Overridable) ustidan yozadi; bu yerda yo'q satrlar
+  (kam uchraydigan xato oynalari) inglizcha qoladi. Faqat ASCII: MSI satrlari ANSI kod sahifasida saqlanadi.
+-->
+<WixLocalization Culture="en-US" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  <!-- bitg'ning o'z matnlari -->
+  <String Id="Downgrade" Value="bitg'ning yangiroq versiyasi allaqachon o'rnatilgan. Eski versiyani o'rnatish uchun avval uni o'chiring." />
+  <String Id="OldWindows" Value="bitg uchun Windows 10 yoki yangiroq kerak." />
+  <String Id="LaunchApp" Value="bitg'ni ishga tushirish" />
+  <String Id="ShortcutDescription" Value="O'zbek matnini 2026 alifbosiga o'giruvchi klaviatura: sozlamalar va statistika" />
+
+  <String Id="WixUIBack" Value="&amp;Orqaga" />
+  <String Id="WixUINext" Value="&amp;Keyingi" />
+  <String Id="WixUICancel" Value="Bekor qilish" />
+  <String Id="WixUIFinish" Value="&amp;Tayyor" />
+  <String Id="WixUIRetry" Value="&amp;Qayta urinish" />
+  <String Id="WixUIIgnore" Value="&amp;E'tibor bermaslik" />
+  <String Id="WixUIYes" Value="&amp;Ha" />
+  <String Id="WixUINo" Value="&amp;Yo'q" />
+  <String Id="WixUIOK" Value="OK" />
+  <String Id="WixUIPrint" Value="&amp;Chop etish" />
+
+  <String Id="CancelDlg_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="CancelDlgText" Value="[ProductName] o'rnatilishini bekor qilasizmi?" />
+  <String Id="ErrorDlg_Title" Value="[ProductName] o'rnatuvchisi" />
+
+  <String Id="WelcomeEulaDlg_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="WelcomeEulaDlgTitle" Value="{\WixUI_Font_Title}[ProductName] litsenziyasi" />
+  <String Id="WelcomeEulaDlgLicenseAcceptedCheckBox" Value="Litsenziya shartlarini &amp;qabul qilaman" />
+  <String Id="WelcomeEulaDlgInstall" Value="&amp;O'rnatish" />
+  <String Id="WelcomeEulaDlgUpdate" Value="&amp;Yangilash" />
+
+  <String Id="PrepareDlg_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="PrepareDlgTitle" Value="{\WixUI_Font_Bigger}[ProductName] o'rnatuvchisi" />
+  <String Id="PrepareDlgDescription" Value="Bir oz kuting, o'rnatish tayyorlanmoqda." />
+
+  <String Id="ProgressDlg_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="ProgressDlgTitleInstalling" Value="{\WixUI_Font_Title}[ProductName] o'rnatilmoqda" />
+  <String Id="ProgressDlgTextInstalling" Value="Bir oz kuting. Ochiq dasturlarni yopish shart emas." />
+  <String Id="ProgressDlgTitleChanging" Value="{\WixUI_Font_Title}[ProductName] o'zgartirilmoqda" />
+  <String Id="ProgressDlgTextChanging" Value="Bir oz kuting." />
+  <String Id="ProgressDlgTitleRepairing" Value="{\WixUI_Font_Title}[ProductName] tiklanmoqda" />
+  <String Id="ProgressDlgTextRepairing" Value="Bir oz kuting." />
+  <String Id="ProgressDlgTitleRemoving" Value="{\WixUI_Font_Title}[ProductName] o'chirilmoqda" />
+  <String Id="ProgressDlgTextRemoving" Value="Bir oz kuting." />
+  <String Id="ProgressDlgTitleUpdating" Value="{\WixUI_Font_Title}[ProductName] yangilanmoqda" />
+  <String Id="ProgressDlgTextUpdating" Value="Bir oz kuting. Ochiq dasturlarni yopish shart emas." />
+  <String Id="ProgressDlgProgressBar" Value="Bajarildi" />
+  <String Id="ProgressDlgStatusLabel" Value="Holat:" />
+
+  <String Id="ExitDialog_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="ExitDialogTitle" Value="{\WixUI_Font_Bigger}[ProductName] tayyor" />
+  <String Id="ExitDialogDescription" Value="Klaviatura O'zbek (lotin) tiliga qo'shiladi. Win + Probel bilan &quot;bitg&quot; ni tanlang va yozishni boshlang: so'z tugashi bilan u yangi alifboga o'tadi. Ochiq dasturlar bitg'ni qayta ochilgandan keyin ko'radi." />
+
+  <String Id="FatalError_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="FatalErrorTitle" Value="{\WixUI_Font_Bigger}O'rnatish yakunlanmadi" />
+  <String Id="FatalErrorDescription1" Value="Xato tufayli [ProductName] o'rnatilmadi. Kompyuterda hech narsa o'zgarmadi. Batafsil: msiexec /i bitg.msi /l*v bitg-install.log" />
+  <String Id="FatalErrorDescription2" Value="Chiqish uchun Tayyor tugmasini bosing." />
+
+  <String Id="UserExit_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="UserExitTitle" Value="{\WixUI_Font_Bigger}O'rnatish to'xtatildi" />
+  <String Id="UserExitDescription1" Value="[ProductName] o'rnatilmadi. Kompyuterda hech narsa o'zgarmadi." />
+  <String Id="UserExitDescription2" Value="Chiqish uchun Tayyor tugmasini bosing." />
+
+  <String Id="MaintenanceWelcomeDlg_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="MaintenanceWelcomeDlgTitle" Value="{\WixUI_Font_Bigger}[ProductName] o'rnatilgan" />
+  <String Id="MaintenanceWelcomeDlgDescription" Value="Tiklash yoki o'chirish uchun Keyingi tugmasini bosing." />
+  <String Id="MaintenanceTypeDlg_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="MaintenanceTypeDlgTitle" Value="{\WixUI_Font_Title}Tiklash yoki o'chirish" />
+  <String Id="MaintenanceTypeDlgDescription" Value="Nima qilamiz?" />
+  <String Id="MaintenanceTypeDlgChangeButton" Value="&amp;O'zgartirish" />
+  <String Id="MaintenanceTypeDlgRepairButton" Value="&amp;Tiklash" />
+  <String Id="MaintenanceTypeDlgRemoveButton" Value="O'&amp;chirish" />
+  <String Id="MaintenanceTypeDlgChangeDisabledText" Value="[ProductName]'da alohida tanlanadigan qismlar yo'q." />
+  <String Id="MaintenanceTypeDlgRepairText" Value="Yo'qolgan yoki buzilgan fayllar, yorliqlar va ro'yxatga olish yozuvlarini qayta tiklaydi." />
+  <String Id="MaintenanceTypeDlgRemoveText" Value="[ProductName]'ni kompyuterdan o'chiradi." />
+
+  <String Id="VerifyReadyDlg_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="VerifyReadyDlgRepair" Value="&amp;Tiklash" />
+  <String Id="VerifyReadyDlgRepairTitle" Value="{\WixUI_Font_Title}[ProductName]'ni tiklash" />
+  <String Id="VerifyReadyDlgRepairText" Value="Boshlash uchun Tiklash tugmasini bosing." />
+  <String Id="VerifyReadyDlgRemove" Value="O'&amp;chirish" />
+  <String Id="VerifyReadyDlgRemoveTitle" Value="{\WixUI_Font_Title}[ProductName]'ni o'chirish" />
+  <String Id="VerifyReadyDlgRemoveText" Value="Boshlash uchun O'chirish tugmasini bosing. Sozlamalaringiz (%APPDATA%\bitg) saqlanib qoladi." />
+
+  <String Id="ResumeDlg_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="ResumeDlgTitle" Value="{\WixUI_Font_Bigger}O'rnatishni davom ettirish" />
+  <String Id="ResumeDlgDescription" Value="[ProductName] o'rnatilishi yakunlanadi. Davom etish uchun O'rnatish tugmasini bosing." />
+  <String Id="ResumeDlgInstall" Value="&amp;O'rnatish" />
+
+  <String Id="FilesInUse_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="FilesInUseTitle" Value="{\WixUI_Font_Title}Fayllar band" />
+  <String Id="FilesInUseDescription" Value="Ba'zi fayllar ochiq dasturlarda ishlatilmoqda." />
+  <String Id="FilesInUseText" Value="Quyidagi dasturlar bitg klaviaturasini ishlatmoqda. Yopish shart emas: E'tibor bermaslik tugmasini bosing, eski fayl kompyuter qayta yonganda o'chadi." />
+  <String Id="FilesInUseExit" Value="&amp;Chiqish" />
+
+  <String Id="WaitForCostingDlg_Title" Value="[ProductName] o'rnatuvchisi" />
+  <String Id="WaitForCostingDlgText" Value="Bir oz kuting, kerakli joy hisoblanmoqda." />
+  <String Id="WaitForCostingDlgReturn" Value="&amp;Qaytish" />
+</WixLocalization>

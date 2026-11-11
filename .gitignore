@@ -4,3 +4,6 @@
 *.pdb
 .vs/
 .idea/
+/installer/bin
+/installer/obj
+/dist

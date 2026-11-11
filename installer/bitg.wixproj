@@ -1,0 +1,24 @@
+<!--
+  bitg MSI. WiX 5.0.2 — NuGet orqali qat'iy versiya (WiX 6+ OSMF litsenziyasini talab qiladi).
+  Odatda installer/build.ps1 orqali quriladi:  dotnet build installer/bitg.wixproj -c Release -p:Version=0.1.0 -p:BinDir=...
+-->
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputName>bitg</OutputName>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <Platform>x64</Platform>
+    <Version Condition="'$(Version)' == ''">0.0.0</Version>
+    <BinDir Condition="'$(BinDir)' == ''">$(MSBuildThisFileDirectory)..\target\release\</BinDir>
+    <DefineConstants>Version=$(Version);BinDir=$(BinDir);RepoDir=$(MSBuildThisFileDirectory)..\</DefineConstants>
+    <Cultures>en-US</Cultures>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- ICE61: AllowSameVersionUpgrades — bir xil versiyani qayta o'rnatish (tuzatilgan build) ataylab ruxsat. -->
+    <!-- ICE43/ICE57: ProgramMenuFolder'ni per-user deb hisoblaydi; Scope=perMachine'da u All Users menyusi,
+         yorliq kalit fayli (exe) bilan bitta komponentda — tiklash (repair) to'g'ri ishlaydi. -->
+    <SuppressIces>ICE43;ICE57;ICE61</SuppressIces>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
+</Project>

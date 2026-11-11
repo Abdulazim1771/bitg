@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  bitg — barcha foydalanuvchilar uchun (perMachine) x64 MSI.
+
+  Nima o'rnatiladi:
+    C:\Program Files\bitg\bitg-settings.exe   ilova (tray + sozlamalar), Start menyusida "bitg"
+    C:\Program Files\bitg\bitg.exe            CLI (PATH'ga qo'shiladi)
+    C:\Program Files\bitg\ime\<versiya>\      IME DLL (TSF). Versiyali papka: yangilashda ochiq dasturlar (Chrome,
+                                              Telegram) eski DLL'ni ushlab turadi, yangilari darhol yangisini oladi —
+                                              hech narsani yopish va qayta yuklash shart emas.
+
+  Administrator uchun xossalar (msiexec /i bitg.msi /qn XOSSA=0):
+    AUTOSTART=1|0     barcha foydalanuvchilarda Windows bilan trayda ishga tushish (har kim ilovadan o'zi o'chira oladi)
+    ADDKEYBOARD=1|0   ilova birinchi ochilganda klaviaturani foydalanuvchining tillar ro'yxatiga qo'shsinmi
+  Tanlov HKLM\SOFTWARE\bitg da saqlanadi va yangilashda eslab qolinadi (buyruq qatoridagi qiymat ustun).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="bitg"
+           Manufacturer="dtwinuz"
+           Version="$(Version)"
+           UpgradeCode="{80B9514E-EB2C-4EA5-B42A-CECB40A16979}"
+           Scope="perMachine"
+           Language="1033"
+           Compressed="yes">
+
+    <SummaryInformation Description="bitg $(Version): o'zbek matnini 2026 alifbosiga o'giruvchi klaviatura" />
+
+    <MajorUpgrade Schedule="afterInstallInitialize"
+                  AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="!(loc.Downgrade)" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- VersionNT 603 = Windows 8.1 / 10 / 11 (Installer 10 dan keyin ham 603 qaytaradi). -->
+    <Launch Condition="Installed OR VersionNT64 &gt;= 603" Message="!(loc.OldWindows)" />
+
+    <!-- Boshqaruv paneli / Sozlamalar → Ilovalar -->
+    <Icon Id="bitg.ico" SourceFile="$(RepoDir)crates\bitg-settings\assets\bitg.ico" />
+    <Property Id="ARPPRODUCTICON" Value="bitg.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://bitg.uz" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/dtwinuz/bitg/issues" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/dtwinuz/bitg/releases" />
+    <!-- ARPNOMODIFY: WixUI_Minimal o'zi qo'yadi (alohida tanlanadigan qism yo'q). -->
+
+    <!-- Restart Manager faqat aniqlaydi, hech bir dasturni yopmaydi: DLL Chrome, Telegram, Word ichida yuklangan
+         bo'ladi. Yangilashda band fayl yo'q (versiyali papka); o'chirishda band DLL qayta yonganda o'chadi. -->
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="DisableShutdown" />
+
+    <!-- ===== Administrator xossalari: buyruq qatori > oldingi o'rnatish > standart (1) ===== -->
+    <Property Id="AUTOSTART" Secure="yes">
+      <RegistrySearch Id="RememberAutostart" Root="HKLM" Key="SOFTWARE\bitg" Name="Autostart" Type="raw" Bitness="always64" />
+    </Property>
+    <Property Id="ADDKEYBOARD" Secure="yes">
+      <RegistrySearch Id="RememberAddKeyboard" Root="HKLM" Key="SOFTWARE\bitg" Name="AddKeyboard" Type="raw" Bitness="always64" />
+    </Property>
+    <SetProperty Id="CMDLINE_AUTOSTART" Value="[AUTOSTART]" Before="AppSearch" Sequence="first" Condition="AUTOSTART" />
+    <SetProperty Id="CMDLINE_ADDKEYBOARD" Value="[ADDKEYBOARD]" Before="AppSearch" Sequence="first" Condition="ADDKEYBOARD" />
+    <SetProperty Action="RestoreAutostart" Id="AUTOSTART" Value="[CMDLINE_AUTOSTART]" After="AppSearch" Sequence="first" Condition="CMDLINE_AUTOSTART" />
+    <SetProperty Action="RestoreAddKeyboard" Id="ADDKEYBOARD" Value="[CMDLINE_ADDKEYBOARD]" After="AppSearch" Sequence="first" Condition="CMDLINE_ADDKEYBOARD" />
+    <SetProperty Action="DefaultAutostart" Id="AUTOSTART" Value="1" After="RestoreAutostart" Sequence="first" Condition="NOT AUTOSTART" />
+    <SetProperty Action="DefaultAddKeyboard" Id="ADDKEYBOARD" Value="1" After="RestoreAddKeyboard" Sequence="first" Condition="NOT ADDKEYBOARD" />
+
+    <!-- ===== Fayllar ===== -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="bitg">
+        <Directory Id="IMEROOT" Name="ime">
+          <Directory Id="IMEDIR" Name="$(Version)" />
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <ComponentGroup Id="Core" Directory="INSTALLFOLDER">
+      <Component Id="App">
+        <!-- Scope=perMachine (ALLUSERS=1): ProgramMenuFolder — barcha foydalanuvchilar Start menyusi. -->
+        <File Id="AppExe" Source="$(BinDir)bitg-settings.exe" KeyPath="yes">
+          <Shortcut Id="StartMenuShortcut"
+                    Directory="ProgramMenuFolder"
+                    Name="bitg"
+                    Description="!(loc.ShortcutDescription)"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="bitg.ico"
+                    Advertise="no" />
+        </File>
+      </Component>
+
+      <Component Id="Cli">
+        <File Id="CliExe" Source="$(BinDir)bitg.exe" KeyPath="yes" />
+        <Environment Id="CliPath" Name="PATH" Value="[INSTALLFOLDER]" Part="last" Action="set" System="yes" />
+      </Component>
+
+      <Component Id="LicenseMit">
+        <File Id="LicenseMit" Source="$(RepoDir)LICENSE-MIT" KeyPath="yes" />
+      </Component>
+      <Component Id="LicenseApache">
+        <File Id="LicenseApache" Source="$(RepoDir)LICENSE-APACHE" KeyPath="yes" />
+      </Component>
+
+      <Component Id="Ime" Directory="IMEDIR">
+        <File Id="ImeDll" Source="$(BinDir)bitg_tsf.dll" KeyPath="yes" />
+      </Component>
+
+      <Component Id="MachineSettings">
+        <RegistryKey Root="HKLM" Key="SOFTWARE\bitg">
+          <RegistryValue Name="InstallDir" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+          <RegistryValue Name="Version" Type="string" Value="$(Version)" />
+          <RegistryValue Name="Autostart" Type="string" Value="[AUTOSTART]" />
+          <RegistryValue Name="AddKeyboard" Type="string" Value="[ADDKEYBOARD]" />
+        </RegistryKey>
+      </Component>
+
+      <Component Id="Autostart" Condition="AUTOSTART = &quot;1&quot;">
+        <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run" Name="bitg"
+                       Type="string" Value="&quot;[INSTALLFOLDER]bitg-settings.exe&quot; --autostart" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="bitg" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="Core" />
+    </Feature>
+
+    <!-- ===== Maxsus amallar ===== -->
+    <!-- Ilova (tray) yopiladi, aks holda exe band va "fayllar band" kutishi (~70 s) boshlanadi:
+         1) CloseAppNow — InstallValidate'dan (va eski versiyani o'chirishdan) oldin, o'rnatayotgan foydalanuvchida;
+         2) StopApp — fayllar almashishidan oldin, boshqa seanslarda ham (SYSTEM). Topilmasa — xato emas. -->
+    <SetProperty Id="WixQuietExecCmdLine" Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM bitg-settings.exe"
+                 Before="CloseAppNow" Sequence="execute" />
+    <CustomAction Id="CloseAppNow" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec"
+                  Execute="immediate" Return="ignore" />
+    <SetProperty Id="StopApp" Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM bitg-settings.exe"
+                 Before="StopApp" Sequence="execute" />
+    <CustomAction Id="StopApp" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+
+    <!-- TSF ro'yxatdan o'tkazish: DllRegisterServer (COM + klaviatura profili + toifalar). -->
+    <SetProperty Id="RegisterIme" Value="&quot;[System64Folder]regsvr32.exe&quot; /s &quot;[#ImeDll]&quot;"
+                 Before="RegisterIme" Sequence="execute" />
+    <CustomAction Id="RegisterIme" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="check" />
+
+    <!-- Faqat to'liq o'chirishda (yangilashda emas: yangi versiya o'zi qayta ro'yxatdan o'tkazadi). -->
+    <SetProperty Id="UnregisterIme" Value="&quot;[System64Folder]regsvr32.exe&quot; /u /s &quot;[#ImeDll]&quot;"
+                 Before="UnregisterIme" Sequence="execute" />
+    <CustomAction Id="UnregisterIme" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="CloseAppNow" Before="InstallValidate" />
+      <Custom Action="StopApp" Before="RemoveFiles" />
+      <Custom Action="UnregisterIme" Before="RemoveFiles" Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+      <Custom Action="RegisterIme" After="InstallFiles" Condition="NOT REMOVE~=&quot;ALL&quot;" />
+    </InstallExecuteSequence>
+
+    <!-- ===== Oynalar ===== -->
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(RepoDir)installer\assets\license.rtf" />
+    <WixVariable Id="WixUIDialogBmp" Value="$(RepoDir)installer\assets\dialog.bmp" />
+    <WixVariable Id="WixUIBannerBmp" Value="$(RepoDir)installer\assets\banner.bmp" />
+
+    <!-- Oxirida ilovani foydalanuvchi nomidan ochish: u birinchi ochilishda klaviaturani qo'shadi. -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="!(loc.LaunchApp)" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#AppExe]" />
+    <CustomAction Id="LaunchApp" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixShellExec" Impersonate="yes" />
+    <UI>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApp"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
+  </Package>
+</Wix>
