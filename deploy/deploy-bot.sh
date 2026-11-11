@@ -16,7 +16,8 @@ SHA="$(git rev-parse origin/main)"
 [ -z "$(git status --porcelain -- bot deploy)" ] || fail "bot/ yoki deploy/ da commit qilinmagan o'zgarish bor"
 ssh "$HOST" "test -s '$REMOTE_DIR/.env'" || fail "serverda $REMOTE_DIR/.env yo'q: ssh -t $HOST $REMOTE_DIR/set-token.sh"
 
-git archive --format=tar "$SHA" Cargo.toml crates/bitg-core bot | gzip \
+# autocrlf=false: Windows'da archive .sh fayllarni CRLF qilib chiqaradi, Linux'da ishlamaydi.
+git -c core.autocrlf=false archive --format=tar "$SHA" Cargo.toml crates/bitg-core bot | gzip \
   | ssh "$HOST" "set -e; cd '$REMOTE_DIR'
 rm -rf src; mkdir src
 tar --no-same-owner -xzf - -C src
