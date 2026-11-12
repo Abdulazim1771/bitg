@@ -190,6 +190,22 @@ cargo install --path crates/bitg-cli
 bitg explain "Chat with the team, keyin choy"   # har bir so'z bo'yicha qaror
 ```
 
+### Fayllar va oldindan ko'rish
+
+```sh
+bitg file hujjat.docx              # → hujjat.yangi.docx (asl fayl o'zgarmaydi)
+bitg file jadval.xlsx -o yangi.xlsx
+bitg file eski.txt maqola.md       # matn fayllar (UTF-8)
+bitg file hujjat.docx --old        # teskari: → hujjat.eski.docx
+bitg file hujjat.docx --dry-run    # yozmasdan: "  12× o'zbek → özbek" va jami
+bitg diff < maqola.txt             # matn bo'yicha: "3: shahar → şahar" (qator raqami bilan)
+```
+
+`.docx` da asosiy matn, kolontitullar, sahifa osti izohlari (footnote/endnote) va sharhlar o'giriladi; so'z bir nechta run'ga
+bo'linib ketgan bo'lsa ham abzats bitta matn sifatida o'giriladi va formatlash (qalin, kursiv, shrift) joyida
+qoladi. `.xlsx` da satrlar (shared strings, rich text, inline) o'giriladi — formula va sonlarga tegilmaydi.
+Boshqa XML va zip yozuvlari baytma-bayt ko'chiriladi. Kirish fayli ustiga faqat `--in-place` bilan yoziladi.
+
 Rust'dan:
 
 ```rust

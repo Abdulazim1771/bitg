@@ -6,6 +6,10 @@ use std::time::Instant;
 
 use bitg_core::{OldStyle, Options, Reason};
 
+mod align;
+mod file;
+mod ooxml;
+
 const HELP: &str = "\
 bitg — o'zbek matnini 2026-yilgi alifboga (ö ğ ş ç ʼ) o'giradi
 
@@ -14,11 +18,17 @@ ISHLATISH:
   bitg old [--ascii] [MATN...]  yangi alifbodan eski lotinga
   bitg explain MATN...          har bir so'z bo'yicha qaror va sabab
   bitg eval FAYL.tsv            sifatni o'lchash (til<TAB>kirish<TAB>kutilgan)
+  bitg file FAYL... [-o CHIQISH] [--old] [--dry-run] [--in-place]
+                                .docx, .xlsx, .txt, .md ni formatini saqlab o'girish;
+                                standart chiqish: FAYL.yangi.docx (--old bilan FAYL.eski.docx)
+  bitg diff [--old] [MATN...]   nima o'zgarishini ko'rsatish (qator: eski → yangi), yozmaydi
 
 SOZLAMALAR:
   --no-guard      inglizcha so'zlarni himoya qilmaslik
   --no-cyrillic   kirill matnga tegmaslik
   --tutuq=C       chiqishdagi tutuq belgisi (standart: ʼ U+02BC)
+  --dry-run, -n   (file) faylga yozmasdan o'zgarishlar ro'yxati va soni
+  --in-place      (file) kirish faylining o'ziga yozish
 ";
 
 fn main() -> ExitCode {
@@ -95,6 +105,8 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        "file" => file::run(&args[1..], &opts, ascii),
+        "diff" => file::diff(&args[1..], &opts, ascii),
         "convert" => out(&bitg_core::convert(&rest(1), &opts)),
         _ => out(&bitg_core::convert(&rest(0), &opts)),
     }
