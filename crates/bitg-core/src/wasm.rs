@@ -37,7 +37,7 @@ pub extern "C" fn bitg_out() -> *const u8 {
 
 /// `mode` 0 — yangi alifboga: `{"out":"…","toks":[["so'z","c"],…]}`
 /// (c o'girildi, u o'zgarmadi, p himoyalangan, x istisno, e inglizcha);
-/// 1 — eski lotinga (rasmiy oʻ), 2 — eski lotinga (o'): `{"out":"…"}`.
+/// 1 — eski lotinga (rasmiy oʻ), 2 — eski lotinga (o'), 3 — kirillga: `{"out":"…"}`.
 /// `flags` — `ffi::BITG_*`. Qaytadi: JSON uzunligi, UTF-8 bo'lmasa 0.
 ///
 /// # Safety
@@ -72,6 +72,7 @@ pub unsafe extern "C" fn bitg_run(p: *const u8, len: usize, mode: u32, flags: u3
             }
             json.push(']');
         }
+        3 => push_str(&mut json, &crate::to_cyrillic(text)),
         _ => {
             let style = if mode == 2 {
                 OldStyle::Ascii

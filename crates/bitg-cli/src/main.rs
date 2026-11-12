@@ -12,6 +12,7 @@ bitg — o'zbek matnini 2026-yilgi alifboga (ö ğ ş ç ʼ) o'giradi
 ISHLATISH:
   bitg [convert] [MATN...]      yangi alifboga (MATN bo'lmasa — stdin)
   bitg old [--ascii] [MATN...]  yangi alifbodan eski lotinga
+  bitg cyr [MATN...]            lotindan (yangi yoki eski) o'zbek kirilliga
   bitg explain MATN...          har bir so'z bo'yicha qaror va sabab
   bitg eval FAYL.tsv            sifatni o'lchash (til<TAB>kirish<TAB>kutilgan)
 
@@ -73,6 +74,7 @@ fn main() -> ExitCode {
             };
             out(&bitg_core::to_old(&rest(1), style))
         }
+        "cyr" => out(&bitg_core::to_cyrillic(&rest(1))),
         "explain" => {
             let (converted, report) = bitg_core::convert_explained(&rest(1), &opts);
             for (tok, reason, ev) in report {

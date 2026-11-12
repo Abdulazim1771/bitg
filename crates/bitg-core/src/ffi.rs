@@ -74,6 +74,18 @@ pub unsafe extern "C" fn bitg_to_old(text: *const c_char, ascii: u32) -> *mut c_
     }
 }
 
+/// Lotin (yangi yoki eski yozuv) → o'zbek kirill. Xato bo'lsa NULL.
+///
+/// # Safety
+/// `text` — NUL bilan tugagan UTF-8 satr yoki NULL.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bitg_to_cyrillic(text: *const c_char) -> *mut c_char {
+    match unsafe { input(text) } {
+        Some(t) => output(crate::to_cyrillic(t)),
+        None => std::ptr::null_mut(),
+    }
+}
+
 /// `bitg_*` qaytargan satrni bo'shatadi.
 ///
 /// # Safety

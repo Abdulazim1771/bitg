@@ -16,6 +16,7 @@ pub mod lang;
 pub mod latin;
 mod lexicon;
 pub mod reverse;
+mod to_cyr;
 pub mod token;
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;
@@ -437,6 +438,16 @@ pub fn convert_explained(text: &str, opts: &Options) -> (String, Vec<(String, Re
 /// Yangi alifbodan eski lotinga.
 pub fn to_old(text: &str, style: OldStyle) -> String {
     reverse::to_old(text, style)
+}
+
+/// Lotin (yangi yoki eski yozuv) → o'zbek kirill. Inglizcha so'z, havola, email va kod lotinda qoladi.
+///
+/// ```
+/// assert_eq!(bitg_core::to_cyrillic("O'zbekiston shaharlari"), "Ўзбекистон шаҳарлари");
+/// assert_eq!(bitg_core::to_cyrillic("Özbekiston şaharlari"), "Ўзбекистон шаҳарлари");
+/// ```
+pub fn to_cyrillic(text: &str) -> String {
+    to_cyr::to_cyrillic(text)
 }
 
 /// Yozish paytida (IME, tray): so'zlar birma-bir keladi, kontekst — faqat shu gapdagi oldingi so'zlar.
