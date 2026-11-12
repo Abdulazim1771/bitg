@@ -10,7 +10,7 @@
   --accent: #2f62c0; --accent-ink: #2553a8; --accent-soft: #e6edfb; --on-accent: #ffffff;
   --ok: #1d7a4f; --ok-soft: #e3f3ea;
   --mark: #1b1e26; --dot: #2f62c0;
-  --key-top: #ffffff; --key-side: #d6d9de; --key-ink: #2a2e36; --key-sub: #8a9099; --kb-deck: #e3e5e1;
+  --key-top: #ffffff; --key-side: #d6d9de; --key-ink: #2a2e36; --key-sub: #676d77; --kb-deck: #e3e5e1;
   --shadow-win: 0 1px 0 rgb(20 24 32 / .04), 0 24px 60px -24px rgb(20 24 32 / .28);
   --r1: 6px; --r2: 10px; --r3: 14px;
   --sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -27,7 +27,7 @@
     --accent: #8fb0ea; --accent-ink: #a9c3f0; --accent-soft: rgb(143 176 234 / .13); --on-accent: #10131a;
     --ok: #6fcf9c; --ok-soft: rgb(111 207 156 / .12);
     --mark: #f3efe7; --dot: #8fb0ea;
-    --key-top: #232733; --key-side: #0b0d12; --key-ink: #e3e1da; --key-sub: #7c8391; --kb-deck: #181b23;
+    --key-top: #232733; --key-side: #0b0d12; --key-ink: #e3e1da; --key-sub: #9aa1ad; --kb-deck: #181b23;
     --shadow-win: 0 1px 0 rgb(255 255 255 / .03) inset, 0 30px 70px -30px rgb(0 0 0 / .7);
     color-scheme: dark;
   }
@@ -39,7 +39,7 @@
   --accent: #8fb0ea; --accent-ink: #a9c3f0; --accent-soft: rgb(143 176 234 / .13); --on-accent: #10131a;
   --ok: #6fcf9c; --ok-soft: rgb(111 207 156 / .12);
   --mark: #f3efe7; --dot: #8fb0ea;
-  --key-top: #232733; --key-side: #0b0d12; --key-ink: #e3e1da; --key-sub: #7c8391; --kb-deck: #181b23;
+  --key-top: #232733; --key-side: #0b0d12; --key-ink: #e3e1da; --key-sub: #9aa1ad; --kb-deck: #181b23;
   --shadow-win: 0 1px 0 rgb(255 255 255 / .03) inset, 0 30px 70px -30px rgb(0 0 0 / .7);
   color-scheme: dark;
 }
@@ -133,6 +133,8 @@ b { font-weight: 650; }
 .bg-g.is-fusing .bg-g__b { position: absolute; left: 100%; top: 0; }
 .bg-g .bg-ring { top: 50%; }
 .bg-g.is-new { color: var(--accent-ink); }
+.bg-msg--out .bg-g.is-new { color: inherit; }
+.bg-msg--out .bg-g.is-new::after { background: var(--on-accent); }
 .bg-g.is-new::after { content: ""; position: absolute; left: -2px; right: -2px; bottom: -2px; height: 2px; border-radius: 2px; background: var(--accent); transform-origin: left; animation: bg-under 1.6s var(--soft) forwards; }
 @keyframes bg-under { 0% { transform: scaleX(0); opacity: 1; } 25% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
 .bg-ring { position: absolute; left: 50%; top: 55%; width: 1.6em; height: 1.6em; margin: -.8em 0 0 -.8em; border-radius: 50%; border: 2px solid var(--accent); pointer-events: none; }
@@ -294,7 +296,7 @@ a.bg-plat__card:hover { border-color: var(--line2); transform: translateY(-3px);
 .bg-plat__sub { font-size: 14px; color: var(--muted); }
 .bg-state { margin-top: auto; align-self: flex-start; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--subtle); color: var(--muted); }
 .bg-state--ok { background: var(--ok-soft); color: var(--ok); }
-.bg-note-sm { margin: 18px 0 0; text-align: center; font-size: 13px; color: var(--faint); }
+.bg-note-sm { margin: 18px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
 
 /* footer */
 .bg-foot { border-top: 1px solid var(--line); padding: 28px 0; }
