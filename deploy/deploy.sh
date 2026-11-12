@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bitg.uz: faqat origin/main deploy qilinadi.
-# web/ + WASM yadro (origin/main'ning toza worktree'sida yig'iladi) + MSI -> /opt/bitg-site -> health.
+# web/ + web/pages/ (tools/site/build.py) + WASM yadro (origin/main'ning toza worktree'sida) + MSI -> /opt/bitg-site -> health -> IndexNow.
 set -euo pipefail
 
 HOST="${1:-dtwin}"
@@ -15,7 +15,7 @@ ROOT="$(pwd)"
 git fetch --quiet origin main
 SHA="$(git rev-parse origin/main)"
 [ "$(git rev-parse HEAD)" = "$SHA" ] || fail "faqat origin/main (HEAD $(git rev-parse --short HEAD))"
-[ -z "$(git status --porcelain -- web deploy)" ] || fail "web/ yoki deploy/ da commit qilinmagan o'zgarish bor"
+[ -z "$(git status --porcelain -- web deploy tools/site)" ] || fail "web/, deploy/ yoki tools/site/ da commit qilinmagan o'zgarish bor"
 
 STAGE="$(mktemp -d)"
 cleanup() { git -C "$ROOT" worktree remove --force "$STAGE/src" 2>/dev/null || true; rm -rf "$STAGE"; }
@@ -34,15 +34,14 @@ MSI="dist/bitg-$VER-x64.msi"
 grep -q "download/bitg-$VER-x64.msi" "$STAGE/src/web/index.html" || fail "index.html $VER MSI'ga havola bermaydi"
 
 SITE="$STAGE/out/site"
-mkdir -p "$SITE/fonts" "$SITE/download"
-W="$STAGE/src/web"
-cp "$W/index.html" "$W/styles.css" "$W/app.js" "$W/theme.js" "$W/icon.svg" "$W/og.png" "$W/robots.txt" "$W/sitemap.xml" "$W/llms.txt" "$W"/[0-9a-f]*.txt "$SITE/"
-cp "$W"/fonts/* "$SITE/fonts/"
+# css/js uzoq keshlanadi: har deployda manzil yangilansin (?v=<sha8>)
+V="${SHA:0:8}"
+# sahifalar web/pages/ dan yig'iladi: shablon, sitemap, 404, JSON-LD (tools/site/build.py)
+"${PYTHON:-python}" -I "$STAGE/src/tools/site/build.py" --out "$SITE" --v "$V" --msi "$ROOT/$MSI" \
+  || fail "sayt yig'ilmadi (tools/site/build.py)"
+mkdir -p "$SITE/download"
 cp "$WASM" "$SITE/bitg_core.wasm"
 cp "$MSI" "dist/bitg-$VER-x64.msi.sha256" "$SITE/download/"
-# css/js/wasm uzoq keshlanadi: har deployda manzil yangilansin
-V="${SHA:0:8}"
-sed -i -E "s#(src|href)=\"([a-z0-9.]+\.(js|css))\"#\1=\"\2?v=$V\"#g; s#data-v=\"\"#data-v=\"$V\"#" "$SITE/index.html"
 printf '%s\n' "$SHA" > "$SITE/version.txt"
 cp deploy/docker-compose.yml deploy/Caddyfile "$STAGE/out/"
 
@@ -56,11 +55,24 @@ mv new/site site; rm -rf new
 docker compose up -d --force-recreate --remove-orphans
 echo '$SHA' > REVISION"
 
+# IndexNow: barcha URL'lar Bing va Yandex'ga (INDEXNOW=0 — o'tkazib yuborish). Xato deploy'ni to'xtatmaydi.
+indexnow() {
+  [ "${INDEXNOW:-1}" = "1" ] || return 0
+  local key list
+  key="$(ls "$STAGE/src/web" | sed -n 's/^\([0-9a-f]\{32\}\)\.txt$/\1/p' | head -1)"
+  [ -n "$key" ] || { echo "indexnow: kalit fayli yo'q"; return 0; }
+  list="$(sed 's/.*/"&"/' "$SITE/urls.txt" | paste -sd, -)"
+  curl -s -o /dev/null -w "indexnow: %{http_code}\n" -m 30 -X POST https://api.indexnow.org/indexnow \
+    -H 'Content-Type: application/json; charset=utf-8' \
+    -d "{\"host\":\"bitg.uz\",\"key\":\"$key\",\"keyLocation\":\"https://bitg.uz/$key.txt\",\"urlList\":[$list]}" || true
+}
+
 # konteyner o'zi javob bersin (edge ulanmagan bo'lsa ham), keyin ommaviy manzil
 for _ in $(seq 1 20); do
   if ssh "$HOST" "docker exec bitg-site wget -qO- http://127.0.0.1/version.txt" 2>/dev/null | grep -q "$SHA"; then
     if curl -fsS "$URL/version.txt" 2>/dev/null | grep -q "$SHA"; then echo "deploy tayyor: $SHA -> $URL"
     else echo "konteyner tayyor: $SHA ($URL hali javob bermadi: dtwin edge'da bitg bloki bormi?)"; fi
+    indexnow
     exit 0
   fi
   sleep 3

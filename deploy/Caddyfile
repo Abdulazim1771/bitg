@@ -7,11 +7,11 @@
 	root * /srv
 	encode zstd gzip
 
-	# deploy.sh css/js/wasm manzillariga ?v=<sha> qo'shadi — uzoq kesh xavfsiz
+	# tools/site/build.py css/js manzillariga, page.js/app.js wasm'ga ?v=<sha> qo'shadi — uzoq kesh xavfsiz
 	@code path /*.js /*.css /*.wasm /fonts/*
 	header @code Cache-Control "public, max-age=31536000, immutable"
 
-	@meta path /icon.svg /og.png /robots.txt /sitemap.xml /llms.txt
+	@meta path /icon.svg /og.png /og/* /apple-touch-icon.png /logo-512.png /robots.txt /sitemap.xml /llms.txt
 	header @meta Cache-Control "public, max-age=86400"
 
 	@dl path /download/*
@@ -20,7 +20,7 @@
 		Content-Disposition attachment
 	}
 
-	@html path / /index.html /version.txt
+	@html path / /index.html /version.txt */ *.html
 	header @html Cache-Control "no-cache"
 
 	header {
@@ -33,7 +33,10 @@
 
 	file_server
 
+	# foydali 404: konvertor va asosiy bo'limlar havolasi, holat kodi 404 qoladi
 	handle_errors 404 {
-		redir * / 302
+		rewrite * /404.html
+		header Cache-Control "no-cache"
+		file_server
 	}
 }

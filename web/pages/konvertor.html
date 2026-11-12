@@ -1,0 +1,83 @@
+---json
+{
+ "slug": "/konvertor/",
+ "lang": "uz",
+ "title": "Matnni yangi alifboga o‘girish — onlayn konvertor · bitg",
+ "description": "Eski lotin yoki kirill matnni yangi o‘zbek alifbosiga (ö ğ ş ç) bir zumda o‘giring. Inglizcha so‘z va havolalarga tegmaydi, matn brauzerdan chiqmaydi.",
+ "h1": "Matnni yangi alifboga o‘girish — onlayn konvertor",
+ "crumb": "Konvertor",
+ "card": "Eski lotin va kirill → yangi alifbo. Matn brauzerdan chiqmaydi.",
+ "lead": "Matnni chap tomonga yozing yoki joylang — o‘ngda yangi alifbodagi shakli chiqadi. O‘girish brauzeringizning o‘zida, bitg yadrosi bilan bo‘ladi: matn hech qayerga yuborilmaydi.",
+ "updated": "2026-11-12",
+ "wasm": true,
+ "wide": true,
+ "schema": ["Article"],
+ "links": ["/yangi-alifbo/", "/yuklab-olish/", "/yangi-harflarni-yozish/", "/qiyoslash/"]
+}
+---
+      <div class="dc-cv" id="dc-cv" data-no-conv data-load="yadro yuklanmoqda…" data-ready="tayyor · internetsiz" data-fail="yadro yuklanmadi — sahifani yangilang" data-copied="Nusxalandi">
+        <div class="dc-cv__bar">
+          <div class="bg-seg" role="group" aria-label="Yo‘nalish">
+            <button type="button" class="bg-seg__b" data-dir="new" aria-pressed="true">Eski / kirill → Yangi</button>
+            <button type="button" class="bg-seg__b" data-dir="old" aria-pressed="false">Yangi → Eski</button>
+            <button type="button" class="bg-seg__b" data-dir="cyr" aria-pressed="false">Lotin → Kirill</button>
+          </div>
+          <div class="bg-try__samples" aria-label="Misollar">
+            <button type="button" class="bg-pill" data-sample="O‘zbekiston shaharlari: Toshkent, Samarqand, Shahrisabz. Choy ichib, g‘alaba haqida gaplashdik.">Lotin</button>
+            <button type="button" class="bg-pill" data-sample="Ертага учрашувни соат ўн бирга кўчирамиз, чой ичиб гаплашамиз.">Kirill</button>
+            <button type="button" class="bg-pill" data-sample="Please check the schedule, keyin choy ichamiz. Link: https://example.com/shop">Aralash</button>
+            <button type="button" class="bg-pill" data-sample="ozbek tilida togri yozish oson">Apostrofsiz</button>
+          </div>
+        </div>
+        <div class="dc-cv__panes">
+          <div class="dc-cv__pane">
+            <label class="dc-cv__label" for="dc-cv-in">Kiritish</label>
+            <textarea id="dc-cv-in" spellcheck="false" rows="8" placeholder="Matnni shu yerga yozing yoki joylang…"></textarea>
+          </div>
+          <div class="dc-cv__pane">
+            <div class="dc-cv__label">Natija <span class="dc-cv__state" id="dc-cv-state">yadro yuklanmoqda…</span></div>
+            <div class="dc-cv__out" id="dc-cv-out" aria-live="polite"></div>
+          </div>
+        </div>
+        <div class="dc-cv__foot">
+          <div class="dc-cv__opts" id="dc-cv-opts">
+            <label><input type="checkbox" data-flag="1" checked>Inglizchani himoya</label>
+            <label><input type="checkbox" data-flag="2" checked>Kirillni o‘girish</label>
+            <label><input type="checkbox" data-flag="8" checked>Apostrofni tiklash</label>
+          </div>
+          <button type="button" class="bg-btn bg-btn--sm" id="dc-cv-copy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg><span>Nusxalash</span></button>
+        </div>
+      </div>
+      <noscript><p class="dc-note">Konvertor JavaScript va WebAssembly bilan ishlaydi. Ular o‘chiq bo‘lsa, <a href="/yuklab-olish/">Windows dasturini</a> yoki <a href="https://github.com/dtwinuz/bitg#readme">buyruq qatori</a> versiyasini ishlating.</p></noscript>
+
+      <h2>Konvertor nima qiladi?</h2>
+      <div class="dc-answer"><p>Har bir so‘zni alohida tekshiradi va faqat o‘zbekcha so‘zlarda <b>o‘ → ö, g‘ → ğ, sh → ş, ch → ç</b> almashtiradi, tutuq belgisini <b>ʼ</b> ga keltiradi. Inglizcha so‘z, havola, email va kod o‘zgarmaydi.</p></div>
+      <div class="dc-table"><table>
+        <tr><th>Kiritish</th><th>Natija</th><th>Nega</th></tr>
+        <tr><td data-no-conv>O‘zbekiston shaharlari</td><td data-no-conv>Özbekiston şaharlari</td><td>o‘ → ö, sh → ş</td></tr>
+        <tr><td data-no-conv>Please check the schedule</td><td data-no-conv>Please check the schedule</td><td>inglizcha — tegilmaydi</td></tr>
+        <tr><td data-no-conv>keyin choy ichamiz</td><td data-no-conv>keyin çoy içamiz</td><td>ch → ç</td></tr>
+        <tr><td data-no-conv>чой ичамиз</td><td data-no-conv>çoy içamiz</td><td>kirill → yangi lotin</td></tr>
+        <tr><td data-no-conv>Is’hoq</td><td data-no-conv>Ishoq</td><td>s va h alohida tovush — ş bo‘lmaydi</td></tr>
+      </table></div>
+      <p>Misollar bitg yadrosining haqiqiy chiqishidan olingan. Yuqoridagi maydonda o‘z matningiz bilan tekshirib ko‘ring.</p>
+
+      <h2>Kirill matnni ham o‘giradimi?</h2>
+      <p>Ha. Kirill matn yangi lotinga eng aniq yo‘l bilan o‘tadi, chunki kirillda <span data-no-conv>ш</span>, <span data-no-conv>ч</span>, <span data-no-conv>ў</span>, <span data-no-conv>ғ</span> alohida harf — taxmin kerak emas. «Kirillni o‘girish» belgisini olib tashlasangiz, kirill so‘zlar o‘zgarmay qoladi.</p>
+
+      <h2>Yangi alifbodan eskisiga qaytarish mumkinmi?</h2>
+      <p>Ha, «Yangi → Eski» yo‘nalishi bor: <span data-no-conv>Özbekiston şaharlari → Oʻzbekiston shaharlari</span>. Bu o‘tish davrida eski imlodagi saytlar va hujjatlar uchun kerak bo‘ladi. «Lotin → Kirill» esa eski yoki yangi lotin matnni o‘zbek kirilliga o‘giradi.</p>
+
+      <h2>Apostrofsiz yozilgan matn-chi?</h2>
+      <p>Ko‘pchilik telefonda <span data-no-conv>«ozbek», «togri»</span> deb yozadi. «Apostrofni tiklash» yoqiq bo‘lsa, bitg so‘z lug‘atda aniq bo‘lgan holda <span data-no-conv>ozbek → özbek</span> qiladi. Ikki ma’noli so‘zlarda (<span data-no-conv>qol / qo‘l, oz / o‘z</span>) taxmin qilmaydi. O‘lchovimizda apostrofsiz gaplarning 81,3 % i to‘liq to‘g‘ri chiqadi — bu yerda natijani ko‘z bilan tekshirib oling.</p>
+
+      <h2>Matnim xavfsizmi?</h2>
+      <p>Ha. Sahifa bitg yadrosini (Rust → WebAssembly) bir marta yuklab oladi va o‘girish shu kompyuterda bo‘ladi. Matn serverga yuborilmaydi va saqlanmaydi — buni brauzerning «Tarmoq» oynasida tekshirishingiz mumkin. Batafsil: <a href="/maxfiylik/">maxfiylik</a>.</p>
+
+      <div class="dc-cta">
+        <div>
+          <h2>Har safar nusxalab o‘tirmang</h2>
+          <p>bitg Windows’da yozayotganingizda o‘zi o‘giradi — Word, Telegram, brauzer, hamma joyda.</p>
+        </div>
+        <div class="dc-cta__btns"><a class="bg-btn bg-btn--pri" href="/yuklab-olish/">Windows uchun yuklab olish</a></div>
+      </div>

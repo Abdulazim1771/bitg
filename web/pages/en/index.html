@@ -1,0 +1,64 @@
+---json
+{
+ "slug": "/en/",
+ "lang": "en",
+ "alt": "home",
+ "title": "bitg — keyboard for the new Uzbek alphabet",
+ "description": "bitg converts Uzbek text to the new 2026 Latin alphabet (ö ğ ş ç) as you type, everywhere, without breaking English. Free and open source for Windows.",
+ "h1": "bitg: type Uzbek the old way, get the new alphabet",
+ "crumb": "bitg",
+ "card": "Typing tool and converter for the new Uzbek alphabet.",
+ "lead": "Uzbekistan’s new Latin alphabet replaces O‘, G‘, Sh, Ch with <b>Ö, Ğ, Ş, Ç</b>. bitg is a free, open-source Windows input method: you keep typing the way you always have, and each word switches to the new alphabet as soon as you finish it.",
+ "updated": "2026-11-12",
+ "schema": ["SoftwareApplication"],
+ "links": ["/konvertor/", "/yuklab-olish/", "/ru/"],
+ "sources": [
+  {"title": "Law O‘RQ-1184, official text — lex.uz (National Database of Legislation)", "url": "https://lex.uz/uz/docs/8548754"},
+  {"title": "Uzbekistan updates its Latin-based alphabet — UzA", "url": "https://uza.uz/ar/posts/uzbekistan-updates-its-latin-based-alphabet_926112", "note": "Oct 21, 2026"},
+  {"title": "School textbooks to switch to the new alphabet by 2031 — UzDaily", "url": "https://www.uzdaily.uz/en/uzbekistan-school-textbooks-to-switch-to-new-alphabet-by-2031/", "note": "Sep 10, 2026"}
+ ]
+}
+---
+      <div class="dc-table"><table>
+        <tr><th>You type</th><th>You get</th></tr>
+        <tr><td>O‘zbekiston shaharlari</td><td>Özbekiston şaharlari</td></tr>
+        <tr><td>Please check the schedule, keyin choy ichamiz</td><td>Please check the schedule, keyin çoy içamiz</td></tr>
+        <tr><td>чой ичамиз (Cyrillic)</td><td>çoy içamiz</td></tr>
+      </table></div>
+
+      <h2>The new Uzbek alphabet in one paragraph</h2>
+      <div class="dc-answer"><p>Law {{lawNo}}, signed on {{signedDateEn}}, takes effect on <b>{{lawDateEn}}</b>. The alphabet now has 28 letters plus the tutuq sign (ʼ): O‘ → Ö, G‘ → Ğ, Sh → Ş, Ch → Ç, and Ng is no longer a separate letter. Documents, banknotes and securities issued in the old script stay valid.</p></div>
+      <div class="dc-abc" aria-label="New Uzbek alphabet">
+        <span>A a</span><span>B b</span><span>D d</span><span>E e</span><span>F f</span><span>G g</span><span class="is-new">Ğ ğ</span><span>H h</span><span>I i</span><span>J j</span><span>K k</span><span>L l</span><span>M m</span><span>N n</span><span>O o</span><span class="is-new">Ö ö</span><span>P p</span><span>Q q</span><span>R r</span><span>S s</span><span class="is-new">Ş ş</span><span class="is-new">Ç ç</span><span>T t</span><span>U u</span><span>V v</span><span>X x</span><span>Y y</span><span>Z z</span><span class="is-new">ʼ</span>
+      </div>
+      <p>School textbooks move over gradually: first-grade books from 2027 and the rest by 2031, according to the Ministry of Preschool and School Education.</p>
+
+      <h2>What bitg does</h2>
+      <ul>
+        <li><b>Converts as you type</b> in Word, Telegram, browsers and any other Windows app.</li>
+        <li><b>Leaves English alone</b>: every word is checked against Uzbek and English dictionaries and the sentence context, so <i>check</i>, <i>shop</i>, links, e-mail addresses and code stay untouched. In our benchmark, 99.73% of English sentences came through unchanged.</li>
+        <li><b>One-key undo</b>: press <kbd>Backspace</kbd> right after a replacement to get the original word back.</li>
+        <li><b>Reads Cyrillic</b>: Cyrillic Uzbek goes straight to the new Latin script.</li>
+        <li><b>Works offline</b>: nothing you type is sent anywhere or stored.</li>
+        <li><b>Optional layouts</b> for typing the new letters directly: Tilmoch, Turkish Q, AltGr or your own.</li>
+      </ul>
+      <div class="dc-facts">
+        <div class="dc-fact"><b>98.87%</b><span>Uzbek sentences converted correctly (3,000)</span></div>
+        <div class="dc-fact"><b>99.73%</b><span>English sentences left unchanged (3,000)</span></div>
+        <div class="dc-fact"><b>~3 µs</b><span>per word, fully offline</span></div>
+      </div>
+      <p>The evaluation set and method are public on <a href="https://github.com/dtwinuz/bitg#sifat-hozirgi-holat">GitHub</a>, so anyone can reproduce the numbers.</p>
+
+      <h2>Install in a minute</h2>
+      <ol class="dc-steps">
+        <li><b><a href="/yuklab-olish/">Download the MSI</a></b> for Windows 10/11 (x64, {{msiSizeMb}} MB) and open it.</li>
+        <li><b>bitg adds itself</b> to the “Uzbek (Latin)” language.</li>
+        <li><b>Press <kbd>Win</kbd> + <kbd>Space</kbd></b> and pick bitg.</li>
+      </ol>
+      <p class="dc-note">The beta installer is not code-signed yet, so SmartScreen may warn you: click “More info” → “Run anyway”. The SHA-256 checksum is on the <a href="/yuklab-olish/">download page</a>.</p>
+
+      <h2>Just need to convert some text?</h2>
+      <p>Paste it into the <a href="/konvertor/">online converter</a>: old Latin or Cyrillic to the new alphabet, back to the old one, or to Cyrillic. It runs entirely in your browser.</p>
+
+      <h2>Other platforms and developers</h2>
+      <p>Linux (IBus, Fcitx5), iPhone, Android and Mac versions are planned. The conversion core is a dependency-free Rust library with a CLI, a C ABI and a WebAssembly build — see the <a href="https://github.com/dtwinuz/bitg">repository</a> (MIT or Apache-2.0).</p>

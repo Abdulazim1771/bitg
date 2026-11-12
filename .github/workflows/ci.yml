@@ -35,3 +35,10 @@ jobs:
         run: |
           out=$(./target/release/bitg "O'zbekiston shaharlari: Toshkent")
           test "$out" = "Özbekiston şaharlari: Toşkent"
+      - name: Site build
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          head -c 4096 /dev/zero > "$RUNNER_TEMP/ci.msi"
+          python3 -I tools/site/build.py --out "$RUNNER_TEMP/site" --v ci --msi "$RUNNER_TEMP/ci.msi"
+          test -f "$RUNNER_TEMP/site/404.html" && test -f "$RUNNER_TEMP/site/sitemap.xml"

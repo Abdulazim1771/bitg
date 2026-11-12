@@ -1,0 +1,39 @@
+---json
+{
+ "slug": "/maxfiylik/",
+ "lang": "uz",
+ "title": "Maxfiylik: bitg matningizni saqlamaydi · bitg",
+ "description": "bitg yozilgan matnni saqlamaydi va internetga yubormaydi. Windows dasturi, onlayn konvertor, Telegram bot va sayt qanday ma’lumot ko‘radi — aniq va qisqa.",
+ "h1": "Maxfiylik: bitg matningizni saqlamaydi",
+ "crumb": "Maxfiylik",
+ "card": "Matn saqlanmaydi, tarmoq yo‘q. Har qism nimani ko‘radi.",
+ "lead": "Qisqasi: <b>Windows dasturi va onlayn konvertor matningizni hech qayerga yubormaydi va saqlamaydi</b>. O‘girish sizning kompyuteringizda bo‘ladi. Quyida har qism bo‘yicha aniq.",
+ "updated": "2026-11-12",
+ "schema": ["Article"],
+ "links": ["/haqida/", "/yuklab-olish/", "/konvertor/"]
+}
+---
+      <h2>Windows dasturi</h2>
+      <ul>
+        <li><b>Tarmoq yo‘q.</b> O‘girish yadrosi dasturning ichida, internetga ulanmaydi.</li>
+        <li><b>Matn saqlanmaydi.</b> Log faylida (<code>%LOCALAPPDATA%\bitg\tsf.log</code>) faqat vaqt, dastur nomi va natija bo‘ladi (masalan, «converted»). Yozgan so‘zlaringiz unga tushmaydi.</li>
+        <li><b>Sozlamalar</b> sizning kompyuteringizda: <code>%APPDATA%\bitg\settings.ini</code> va istisnolar ro‘yxati <code>exceptions.txt</code>. Istisnoga faqat siz qo‘shgan yoki «qaytarilgan so‘zni yozish» yoqilganda qaytargan so‘zingiz yoziladi.</li>
+        <li><b>Clipboard</b> faqat <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Y</kbd> bosilganda ishlatiladi: belgilangan matn olinadi, o‘giriladi, joyiga qo‘yiladi va avvalgi nusxa qaytariladi.</li>
+        <li><b>Terminallar</b> (Windows Terminal, PuTTY va boshqalar) — u yerda buyruq va parol yoziladi, shuning uchun bitg standart holatda o‘chiq.</li>
+      </ul>
+
+      <h2>Onlayn konvertor</h2>
+      <p>Sahifa bitg yadrosini (WebAssembly fayli) bir marta yuklab oladi, so‘ng matn brauzerning o‘zida o‘giriladi. Matn serverga yuborilmaydi — saytning xavfsizlik siyosati (CSP) sahifaga faqat o‘z serveriga murojaat qilishga ruxsat beradi, konvertor esa matn bilan hech qanday so‘rov yubormaydi.</p>
+
+      <h2>Telegram bot</h2>
+      <p>Botga yuborilgan xabar o‘girish uchun Telegram orqali botga keladi — bu Telegram’ning ishlash usuli. Bot xabar matnini saqlamaydi va logga yozmaydi; faqat umumiy sanoq yuritiladi (nechta xabar). Maxfiy matnni botga emas, konvertorga yoki Windows dasturiga bering.</p>
+
+      <h2>Sayt</h2>
+      <ul>
+        <li>Cookie, reklama va tashqi analitika yo‘q.</li>
+        <li>Brauzeringizda faqat ikki sozlama saqlanadi: mavzu (yorug‘/qorong‘i) va sahifa alifbosi (eski/yangi).</li>
+        <li>Server oddiy kirish jurnalini yuritadi (IP manzil, ochilgan sahifa, vaqt, brauzer turi) va uni 30 kun saqlaydi — xavfsizlik va xatolarni topish uchun. Manzildagi uzun tokenlar jurnalda yashiriladi.</li>
+      </ul>
+
+      <h2>Savol bo‘lsa</h2>
+      <p><a href="https://github.com/dtwinuz/bitg/issues">GitHub Issues</a> orqali yozing. Kod ochiq — yuqoridagilarni <a href="https://github.com/dtwinuz/bitg">manba kodidan</a> o‘zingiz tekshirishingiz mumkin.</p>

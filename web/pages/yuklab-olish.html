@@ -1,0 +1,77 @@
+---json
+{
+ "slug": "/yuklab-olish/",
+ "lang": "uz",
+ "title": "bitg yuklab olish — Windows 10/11 uchun bepul · bitg",
+ "description": "bitg’ni Windows uchun yuklab oling: MSI o‘rnatuvchi, versiya, hajm, SHA-256 va o‘rnatish qadamlari. Bepul, ochiq kod, internetsiz ishlaydi.",
+ "h1": "bitg’ni Windows uchun yuklab olish",
+ "crumb": "Yuklab olish",
+ "card": "MSI o‘rnatuvchi, SHA-256, o‘rnatish va o‘chirish.",
+ "lead": "Bitta fayl, bir daqiqa: o‘rnating, <kbd>Win</kbd> + <kbd>Probel</kbd> bilan bitg’ni tanlang va odatdagidek yozavering — so‘z tugashi bilan yangi alifboga o‘tadi.",
+ "updated": "2026-11-12",
+ "schema": ["SoftwareApplication"],
+ "links": ["/klaviatura/windows/", "/konvertor/", "/maxfiylik/", "/savollar/"]
+}
+---
+      <div class="dc-dl" id="yuklash">
+        <div class="dc-dl__top">
+          <div>
+            <div class="dc-dl__name">bitg {{version}} · Windows 10 / 11</div>
+            <p class="dc-dl__meta" data-no-conv>x64 · MSI · {{msiSizeUz}} MB · beta</p>
+          </div>
+          <a class="bg-btn bg-btn--pri" href="{{msiUrl}}" download>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>
+            Yuklab olish
+          </a>
+        </div>
+        <div class="dc-dl__sha">
+          <span>SHA-256 (faylni tekshirish uchun):</span>
+          <code id="dc-sha" data-no-conv>{{sha256}}</code>
+        </div>
+      </div>
+      <p class="dc-note">Boshqa yo‘l: <a href="https://github.com/dtwinuz/bitg/releases">GitHub Releases</a> sahifasida ham shu fayl va <code>.sha256</code> turadi. Manba kodi ochiq — o‘zingiz qurishingiz ham mumkin.</p>
+
+      <h2>O‘rnatish: 3 qadam</h2>
+      <ol class="dc-steps">
+        <li><b>Faylni oching.</b> Yuklangan <code data-no-conv>{{msiName}}</code> ni ikki marta bosing. O‘rnatuvchi barcha foydalanuvchilar uchun ishlaydi.</li>
+        <li><b>bitg o‘zi ochiladi.</b> O‘rnatish oxirida bitg ishga tushadi va klaviaturani «O‘zbek (lotin)» tiliga o‘zi qo‘shadi.</li>
+        <li><b>Klaviaturani tanlang.</b> <kbd>Win</kbd> + <kbd>Probel</kbd> bosib, ro‘yxatdan «bitg» ni tanlang. Endi istalgan dasturda eskicha yozing — <span data-no-conv>«o‘zbek» → «özbek»</span>.</li>
+      </ol>
+      <p>Yangilash ham shu yo‘l bilan: yangi MSI’ni oching. Ochiq dasturlarni (Chrome, Telegram) yopish va kompyuterni qayta yuklash shart emas.</p>
+
+      <h2>«Windows kompyuteringizni himoya qildi» oynasi chiqsa</h2>
+      <div class="dc-answer"><p>Beta o‘rnatuvchi hozircha raqamli imzosiz, shuning uchun SmartScreen notanish nashriyotchi haqida ogohlantiradi. Oynada <b>«Batafsil»</b> → <b>«Baribir ishga tushirish»</b> ni bosing.</p></div>
+      <p>Fayl aynan biznikimi — tekshirish oson. PowerShell’da:</p>
+      <pre><code data-no-conv>Get-FileHash .\{{msiName}} -Algorithm SHA256</code></pre>
+      <p>Chiqqan qiymat yuqoridagi SHA-256 bilan bir xil bo‘lishi kerak. Bir belgi farq qilsa ham faylni ochmang va bizga <a href="https://t.me/bitguz">Telegram</a> orqali yozing.</p>
+
+      <h2>Tizim talablari</h2>
+      <div class="dc-table"><table>
+        <tr><th>Nima</th><th>Talab</th></tr>
+        <tr><td>Windows</td><td>Windows 10 yoki 11, 64-bit (x64)</td></tr>
+        <tr><td>Hajm</td><td><span data-no-conv>{{msiSizeUz}} MB</span> o‘rnatuvchi</td></tr>
+        <tr><td>Internet</td><td>Kerak emas: o‘girish kompyuterning o‘zida bo‘ladi</td></tr>
+        <tr><td>Administrator</td><td>O‘rnatish uchun kerak (dastur <code>C:\Program Files\bitg\</code> ga yoziladi)</td></tr>
+      </table></div>
+
+      <h2>Qaysi dasturlarda ishlaydi?</h2>
+      <p>bitg — Windows kiritish usuli (TSF). Word, Chrome va Edge, zamonaviy Windows ilovalarida to‘liq ishlaydi. Telegram Desktop kabi Qt dasturlarida zaxira yo‘l bilan ishlaydi. Terminallarda (Windows Terminal, PuTTY) standart holatda o‘chiq — u yerda buyruq va parol yoziladi; xohlasangiz sozlamalardan yoqasiz. Batafsil: <a href="/klaviatura/windows/">Windows klaviaturasi</a>.</p>
+
+      <h2>Kompaniyada ommaviy o‘rnatish</h2>
+      <p>GPO, Intune, SCCM yoki PDQ orqali jim o‘rnatish:</p>
+      <pre><code data-no-conv>msiexec /i {{msiName}} /qn /l*v bitg-install.log
+msiexec /i {{msiName}} /qn AUTOSTART=0 ADDKEYBOARD=0
+msiexec /x {{msiName}} /qn</code></pre>
+      <p><code>AUTOSTART=0</code> — tray ilovasi Windows bilan ishga tushmaydi, <code>ADDKEYBOARD=0</code> — klaviatura foydalanuvchining tillar ro‘yxatiga avtomatik qo‘shilmaydi. Qaytish kodlari standart: <code>0</code> muvaffaqiyat, <code>3010</code> qayta yuklash tavsiya etiladi, <code>1603</code> xato (sababi logda).</p>
+
+      <h2>O‘chirish</h2>
+      <p>Sozlamalar → Ilovalar → bitg → O‘chirish (yoki <code>msiexec /x</code>). Dastur ochiq oynalarda yuklangan bo‘lsa, o‘chirish bir daqiqagacha cho‘zilishi mumkin — qayta yuklash kerak emas. Shaxsiy sozlamalar (<code>%APPDATA%\bitg</code>) saqlanib qoladi.</p>
+
+      <h2>Boshqa qurilmalar</h2>
+      <div class="dc-table"><table>
+        <tr><th>Qurilma</th><th>Holat</th></tr>
+        <tr><td>Windows 10 / 11</td><td class="dc-yes">Hozir</td></tr>
+        <tr><td>Buyruq qatori (fayl va matnni o‘girish)</td><td class="dc-yes">Hozir — <a href="https://github.com/dtwinuz/bitg#readme">GitHub</a></td></tr>
+        <tr><td>Linux (IBus, Fcitx5)</td><td class="dc-no">Reja</td></tr>
+        <tr><td>iPhone, Android, Mac</td><td class="dc-no">Reja — hozircha <a href="/yangi-harflarni-yozish/">qo‘lda yozish yo‘llari</a></td></tr>
+      </table></div>

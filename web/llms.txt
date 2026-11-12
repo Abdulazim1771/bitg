@@ -6,6 +6,15 @@ Yangi oʻzbek alifbosi: Oʻ→Ö, Gʻ→Ğ, Sh→Ş, Ch→Ç; tutuq belgisi (ʼ)
 
 ## Sahifalar
 - [Bosh sahifa](https://bitg.uz/): dastur nima qiladi, brauzerdagi sinov maydoni, Windows MSI yuklab olish
+- [Yuklab olish](https://bitg.uz/yuklab-olish/): MSI, SHA-256, oʻrnatish, tizim talablari, ommaviy oʻrnatish
+- [Onlayn konvertor](https://bitg.uz/konvertor/): eski lotin/kirill → yangi alifbo va aksincha, brauzerning oʻzida
+- [Yangi oʻzbek alifbosi](https://bitg.uz/yangi-alifbo/): 28 harf + tutuq, nima oʻzgardi, Ng
+- [Alifbo qonuni OʻRQ-1184](https://bitg.uz/yangi-alifbo-qonuni/): sanalar, 4 modda, nima oʻzgarmaydi
+- [Ş, Ç, Ğ, Ö qanday yoziladi](https://bitg.uz/yangi-harflarni-yozish/): Windows, Mac, telefon
+- [Klaviatura tartiblari](https://bitg.uz/klaviatura/) va [Windows klaviaturasi](https://bitg.uz/klaviatura/windows/)
+- [Vositalarni taqqoslash](https://bitg.uz/qiyoslash/): tartib, konvertor va avtomatik oʻgirish farqi
+- [Savol-javob](https://bitg.uz/savollar/), [bitg haqida](https://bitg.uz/haqida/), [Maxfiylik](https://bitg.uz/maxfiylik/)
+- [Русский](https://bitg.uz/ru/), [Новый узбекский алфавит](https://bitg.uz/ru/novyy-uzbekskiy-alfavit/), [English](https://bitg.uz/en/)
 
 ## Manba kodi va aloqa
 - [GitHub: dtwinuz/bitg](https://github.com/dtwinuz/bitg) — MIT yoki Apache-2.0
