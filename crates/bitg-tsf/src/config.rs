@@ -13,6 +13,9 @@
 //! auto_convert=1
 //! keymap=0
 //! layout=tilmoch
+//! hotkey=1
+//! hotkey_keys=ctrl+shift+y
+//! hotkey_old_keys=
 //! ```
 //!
 //! `auto_convert` — probeldan keyin so'zni o'girish. `keymap` — yangi harflarni tugmalardan yozish
@@ -21,6 +24,9 @@
 //! `fallback` — matnni TSF'ga bermaydigan dasturlar (Telegram Desktop): bosilgan harflar kuzatiladi va so'z
 //! Backspace + qayta yozish bilan almashtiriladi. `disabled_apps` — bitg umuman ishlamaydigan dasturlar
 //! (standart: terminallar, chunki u yerda parol va buyruqlar yoziladi). Bo'sh qiymat = hamma joyda.
+//!
+//! `hotkey` — tray ilovasining global tugmasi: belgilangan matnni yangi alifboga o'giradi (`hotkey_keys`).
+//! `hotkey_old_keys` — teskari yo'nalish (yangi → eski), bo'sh = o'chiq. IME bu kalitlarni ishlatmaydi.
 
 use bitg_core::Options;
 use bitg_core::chars::fold_key;
@@ -43,7 +49,16 @@ pub struct Config {
     pub keymap: bool,
     /// `keymap::PRESETS` dan biri yoki `keymap::CUSTOM`.
     pub layout: String,
+    /// Belgilangan matnni o'girish tugmasi (tray ilovasi ushlaydi).
+    pub hotkey: bool,
+    /// Tugmalar birikmasi, masalan `ctrl+shift+y` (kichik harflarda; tekshiruv tray ilovasida).
+    pub hotkey_keys: String,
+    /// Teskari yo'nalish (yangi → eski) tugmasi; bo'sh — o'chiq.
+    pub hotkey_old_keys: String,
 }
+
+/// Belgilangan matnni o'girish tugmasining standart birikmasi.
+pub const DEFAULT_HOTKEY: &str = "ctrl+shift+y";
 
 /// Terminallar: buyruq va parol yoziladi — standart holatda tegilmaydi.
 pub const DEFAULT_DISABLED_APPS: &[&str] = &[
@@ -90,6 +105,9 @@ impl Default for Config {
             auto_convert: true,
             keymap: false,
             layout: keymap::DEFAULT_LAYOUT.into(),
+            hotkey: true,
+            hotkey_keys: DEFAULT_HOTKEY.into(),
+            hotkey_old_keys: String::new(),
         }
     }
 }
@@ -136,6 +154,14 @@ pub fn parse(settings: &str, exceptions: &str) -> Config {
                     c.layout = v;
                 }
             }
+            "hotkey" => c.hotkey = flag(v).unwrap_or(c.hotkey),
+            "hotkey_keys" => {
+                let v = keys_value(v);
+                if !v.is_empty() {
+                    c.hotkey_keys = v;
+                }
+            }
+            "hotkey_old_keys" => c.hotkey_old_keys = keys_value(v),
             "disabled_apps" => {
                 c.disabled_apps = v
                     .split([',', ';'])
@@ -165,6 +191,14 @@ pub fn parse(settings: &str, exceptions: &str) -> Config {
     c
 }
 
+/// Tugmalar birikmasi: probelsiz, kichik harflarda (`Ctrl + Shift + Y` → `ctrl+shift+y`).
+pub fn keys_value(v: &str) -> String {
+    v.chars()
+        .filter(|c| !c.is_whitespace())
+        .collect::<String>()
+        .to_ascii_lowercase()
+}
+
 fn bit(b: bool) -> &'static str {
     if b { "1" } else { "0" }
 }
@@ -174,7 +208,8 @@ pub fn to_ini(c: &Config) -> String {
     format!(
         "# bitg sozlamalari. Sozlamalar oynasi yozadi; qo'lda tahrirlash ham mumkin.\n\
          enabled={}\nenglish_guard={}\ncyrillic={}\nrestore_apostrophes={}\ntutuq={}\n\
-         undo_backspace={}\nundo_remember={}\nfallback={}\ndisabled_apps={}\nauto_convert={}\nkeymap={}\nlayout={}\n",
+         undo_backspace={}\nundo_remember={}\nfallback={}\ndisabled_apps={}\nauto_convert={}\nkeymap={}\nlayout={}\n\
+         hotkey={}\nhotkey_keys={}\nhotkey_old_keys={}\n",
         bit(c.enabled),
         bit(c.opts.english_guard),
         bit(c.opts.cyrillic),
@@ -187,6 +222,9 @@ pub fn to_ini(c: &Config) -> String {
         bit(c.auto_convert),
         bit(c.keymap),
         c.layout,
+        bit(c.hotkey),
+        keys_value(&c.hotkey_keys),
+        keys_value(&c.hotkey_old_keys),
     )
 }
 
@@ -335,6 +373,27 @@ layout=Turkish",
         assert_eq!(c.resolve_keymap("[ x X - -").get(0x1A, 0), Some('x'));
         c.layout = "altgr".into();
         assert_eq!(c.resolve_keymap("").get(0x18, 2), Some('ö'));
+    }
+
+    #[test]
+    fn hotkey_settings() {
+        let c = parse("", "");
+        assert!(c.hotkey && c.hotkey_keys == DEFAULT_HOTKEY && c.hotkey_old_keys.is_empty());
+        let c = parse(
+            "hotkey=0\nhotkey_keys = Ctrl + Shift + B\nhotkey_old_keys=ctrl+shift+o",
+            "",
+        );
+        assert!(!c.hotkey && c.hotkey_keys == "ctrl+shift+b");
+        assert_eq!(c.hotkey_old_keys, "ctrl+shift+o");
+        let back = parse(&to_ini(&c), "");
+        assert!(!back.hotkey && back.hotkey_keys == "ctrl+shift+b");
+        assert_eq!(back.hotkey_old_keys, "ctrl+shift+o");
+        assert_eq!(parse("hotkey_keys=", "").hotkey_keys, DEFAULT_HOTKEY);
+        assert!(
+            parse(&to_ini(&parse("", "")), "")
+                .hotkey_old_keys
+                .is_empty()
+        );
     }
 
     #[test]
