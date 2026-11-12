@@ -15,3 +15,5 @@ path = "src/main.rs"
 
 [dependencies]
 bitg-core = { path = "../bitg-core" }
+quick-xml = "0.42"
+zip = { version = "9.5", default-features = false, features = ["deflate-flate2-zlib-rs"] }
