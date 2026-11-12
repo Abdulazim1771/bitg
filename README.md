@@ -235,15 +235,45 @@ o'zbek qo'shimchasi bilan ham o'girilmaydi. Kishi va joy nomlari ro'yxatda yo'q:
 
 ## Lug'at
 
-`crates/bitg-core/src/data/*.tsv` — faqat so'z va og'irlik (matnlar emas):
+`crates/bitg-core/src/data/*.tsv` — faqat so'z va og'irlik (matnlarning o'zi emas). Binarga qurish vaqtida
+tayyor hash-jadval bo'lib kiradi (`crates/bitg-core/build.rs`).
 
-* o'zbekcha: [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de/en/download/Uzbek) (CC BY 4.0)
-* inglizcha: [SCOWL](http://wordlist.aspell.net/) (Kevin Atkinson, ruxsat beruvchi litsenziya)
+| Fayl | Nima | Manba va litsenziya |
+|---|---|---|
+| `uz.tsv` (71 933 so'z) | o'zbekcha so'z (eski lotin kaliti) → og'irlik `log10(chastota)+1`; `0` = o'/g' siz shakl kirillda uchramaydi (`boladi`: faqat `bo'ladi`) | [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de/en/download/Uzbek) (CC BY 4.0): `uzb_community_2017` (faqat kirill gaplar), `uzb_wikipedia_2014/2016/2021_100K`, `uzb_news_2020_10K`, `uzb_newscrawl_2011_100K`; [Mozilla Common Voice](https://github.com/common-voice/common-voice/tree/main/server/data/uz) `sentence-collector.txt` (CC0); [Tatoeba](https://tatoeba.org) `uzb_sentences.tsv` (CC BY 2.0 FR) |
+| `sh_split.tsv` | kirillda s+h alohida so'zlar (Исҳоқ, нусҳа, Мусҳаф): `sh` → ş bo'lmaydi | yuqoridagi kirill gaplar |
+| `en.tsv` | inglizcha so'z → SCOWL darajasi | [SCOWL 2020.12.07](http://wordlist.aspell.net/) (Kevin Atkinson, ruxsat beruvchi litsenziya) |
+| `names.txt` | brendlar (qo'lda) | — |
 
-Qayta qurish: `python -I tools/build_lexicon.py --scowl <dir> --leipzig <wiki-words.txt> --leipzig-cyrillic-only <community-words.txt>`
+Faqat CC0 / CC BY / ruxsat beruvchi manbalar. O'zbek Vikipediyasi dumpi (CC BY-SA) ataylab ishlatilmaydi:
+ShareAlike sharti MIT / Apache-2.0 binarga mos emas. Leipzig'ning yuklab olinadigan korpuslari CC BY 4.0
+([Terms of Usage](https://wortschatz.uni-leipzig.de/en/usage)).
 
-Kengaytirish (ish jarayonida): ko'proq ochiq litsenziyali o'zbek manbalari (Leipzig'ning katta to'plamlari,
-Common Voice CC0, Tatoeba CC BY) — maqsad apostrofsiz matnda 69% dan yuqori, qolgan ikki o'lchov tushmasin.
+**O'qitish/test ajratilgan:** [`eval/`](eval/README.md) dagi baholash gaplari lug'atga kirmaydi
+(`--exclude-eval`). Avvalgi lug'at `uzb_community_2017-words.txt` sanog'idan qurilgan edi — unda eval gaplari ham
+sanalgan, shuning uchun eski 99.17% / 69.07% biroz oshirilgan edi. Eval chiqarib tashlangan holda eski manbalar
+bilan: 98.87% / 68.50% / 99.73%.
+
+| Lug'at | uz | uz apostrofsiz | en | uz.tsv | bitg.exe |
+|---|---|---|---|---|---|
+| avvalgi (eval gaplari sanoqda bor edi) | 99.17% | 69.07% | 99.73% | 45 614 so'z, 736 KB | 2.78 MB |
+| avvalgi manbalar, eval chiqarilgan | 98.87% | 68.50% | 99.73% | 45 021 so'z | — |
+| **hozirgi** | **98.87%** | **81.30%** | **99.73%** | 71 933 so'z, 1.1 MB | 3.73 MB |
+
+Apostrofsiz matndagi o'sish manbalari: kengroq lug'at; kirillda uchramaydigan apostrofsiz shakl `0` og'irlik
+bilan yoziladi (aks holda `boladi` o'zak orqali `bola|di` deb hisoblanib, `bo'ladi` tiklanmasdi); chiziqchali so'z
+bo'lak-bo'lak (`qollab-quvvatlash`); matnda o'/g' umuman yo'q va boshqa so'z tiklangan bo'lsa ikki ma'noli so'zlar
+ham (`oz → o'z`, `yoq → yo'q`). Tezlik va xotira o'zgarmadi (2.7 / 1.3 µs/so'z, 0.5 MB private); apostrofsiz
+matnda 2.5 → 3.3 µs/so'z.
+
+Qayta qurish (manbalarni yuklab, bir papkaga oching):
+
+```
+python -I tools/build_lexicon.py --scowl scowl-2020.12.07   --sentences-cyrillic-only uzb_community_2017/uzb_community_2017-sentences.txt   --sentences uzb_wikipedia_2021_100K/uzb_wikipedia_2021_100K-sentences.txt       uzb_wikipedia_2016_100K/uzb_wikipedia_2016_100K-sentences.txt       uzb_wikipedia_2014_100K/uzb_wikipedia_2014_100K-sentences.txt       uzb_news_2020_10K/uzb_news_2020_10K-sentences.txt       uzb_newscrawl_2011_100K/uzb_newscrawl_2011_100K-sentences.txt       sentence-collector.txt uzb_sentences.tsv   --exclude-eval eval/uz.tsv eval/uz_noapos.tsv
+```
+
+Standart sozlamalar: `--min-freq 3 --context-top 40000 --bare-rare-min 100`. So'ng `cargo build --release -p
+bitg-cli` va `bitg eval eval/uz.tsv` (shuningdek `uz_noapos.tsv`, `en.tsv`).
 
 ## Yo'l xaritasi
 

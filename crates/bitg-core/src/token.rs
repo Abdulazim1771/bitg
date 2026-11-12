@@ -3,9 +3,10 @@
 use crate::chars::is_apostrophe;
 
 /// Gap ichida so'z chetida turadigan oddiy tinish belgilari. Apostroflar alohida ko'riladi.
+/// `¸` (sedil) — ba'zi saytlarda vergul o'rnida keladi ("bo'lsa¸ keyin").
 const EDGE: &[char] = &[
     '(', ')', '[', ']', '{', '}', '"', '«', '»', '“', '”', '„', ',', '.', ';', ':', '!', '?', '…',
-    '—', '–', '*', '_', '~',
+    '—', '–', '*', '_', '~', '¸',
 ];
 
 /// Tokenning qismlari: boshidagi va oxiridagi tinish belgilari va o'zak.

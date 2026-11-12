@@ -23,8 +23,18 @@ fn split() -> &'static Lexicon {
 }
 
 /// Kirillda s|h alohida bo'lgan so'z (Исҳоқ → Ishoq): yozuvdagi "sh" ş ga aylanmasligi kerak.
+/// Qo'shimchali shakl ham (nushalari, Ishoqqa): o'zak kamida 5 harf.
 pub fn is_sh_split(word: &str) -> bool {
-    split().contains_key(fold_key(word).as_str())
+    const SUFFIXES: &[&str] = &[
+        "laridan", "larning", "lari", "ning", "dagi", "dan", "lar", "ga", "qa", "da", "ni", "si",
+        "i",
+    ];
+    let key = fold_key(word);
+    split().contains_key(key.as_str())
+        || SUFFIXES.iter().any(|s| {
+            key.strip_suffix(s)
+                .is_some_and(|stem| stem.chars().count() >= 5 && split().contains_key(stem))
+        })
 }
 
 static NAMES_TXT: &str = include_str!("data/names.txt");
@@ -249,9 +259,9 @@ const NEVER_RESTORE: &[&str] = &[
 const RESTORE_KNOWN: f32 = 3.3;
 /// Nomzod asl so'zdan shuncha kuchli bo'lsin (log10 shkala: ~30 baravar ko'p uchraydi).
 const RESTORE_MARGIN: f32 = 1.5;
-/// Apostrofsiz shakl ham lug'atda bor, nomzod o'zak orqali taxmin: ~45 baravar ko'p uchrashi kerak
-/// (1.5 da "oshganlar → o'shganlar" kabi xatolar chiqdi).
-const RESTORE_MARGIN_BOTH: f32 = 1.65;
+/// Apostrofsiz shakl ham lug'atda bor, nomzod o'zak orqali taxmin: ~60 baravar ko'p uchrashi kerak
+/// (1.5 va 1.65 da "oshganlar → o'shganlar" kabi xatolar chiqdi — o'zak "o'sh" fe'l qo'shimchasini olmaydi).
+const RESTORE_MARGIN_BOTH: f32 = 1.8;
 /// Ikkala shakl ham korpusda o'zi uchraydi (ogir/og'ir, garb/g'arb): ~16 baravar ko'p bo'lsa kifoya.
 /// Ikkalasi ham haqiqiy so'z bo'lgan juftlar (toy/to'y, top/to'p) — `NEVER_RESTORE` da.
 const RESTORE_MARGIN_DIRECT: f32 = 1.2;
@@ -270,11 +280,36 @@ const RESTORE_MAX_SLOTS: usize = 6;
 /// Tushib qolgan apostrofni tiklash: "ozbek" → "o'zbek", "Togri" → "To'g'ri", "ogil" → "o'g'il".
 /// Asl so'z o'zi ma'lum bo'lsa (ozod, bor) — None. Inglizcha so'z (song) faqat `uz_context` da (gap aniq
 /// o'zbekcha: "Bundan song keldim"). Harf registri saqlanadi.
-pub fn restore_apostrophes(word: &str, uz_context: bool) -> Option<String> {
+///
+/// `loose` — matn muallifi o'/g' apostrofini umuman qo'ymaydi (shu matnda boshqa so'z ham tiklandi): ikkala
+/// shakli ham haqiqiy so'z bo'lsa (oz / o'z, yoq / yo'q) ham chastota nisbati hal qiladi.
+pub fn restore_apostrophes(word: &str, uz_context: bool, loose: bool) -> Option<String> {
+    // Chiziqchali so'z qism-qism: qollab-quvvatlash → qo'llab-quvvatlash, togridan-togri → to'g'ridan-to'g'ri.
+    // Bir bo'lagida o'/g' yozilgan bo'lsa (ozmi-ko'pmi) — muallif apostrof qo'yadi, qolganiga tegilmaydi.
+    if word.contains('-') {
+        let k = fold_key(word);
+        if k.contains("o'") || k.contains("g'") {
+            return None;
+        }
+        let mut changed = false;
+        let parts: Vec<String> = word
+            .split('-')
+            .map(|p| match restore_apostrophes(p, uz_context, loose) {
+                Some(r) => {
+                    changed = true;
+                    r
+                }
+                None => p.to_string(),
+            })
+            .collect();
+        return changed.then(|| parts.join("-"));
+    }
     let key = fold_key(word);
     let kc: Vec<char> = key.chars().collect();
     let wc: Vec<char> = word.chars().collect();
-    if kc.len() != wc.len() || kc.len() < 3 || NEVER_RESTORE.contains(&key.as_str()) {
+    let min_len = if loose { 2 } else { 3 };
+    if kc.len() != wc.len() || kc.len() < min_len || !loose && NEVER_RESTORE.contains(&key.as_str())
+    {
         return None;
     }
     let english = en().contains_key(key.as_str());
@@ -283,12 +318,13 @@ pub fn restore_apostrophes(word: &str, uz_context: bool) -> Option<String> {
     }
     let w0 = uz_weight(&key).unwrap_or(0.0);
     let direct0 = uz().contains_key(key.as_str());
-    if w0
-        >= if direct0 {
-            RESTORE_KNOWN
-        } else {
-            RESTORE_KNOWN_STEM
-        }
+    if !loose
+        && w0
+            >= if direct0 {
+                RESTORE_KNOWN
+            } else {
+                RESTORE_KNOWN_STEM
+            }
     {
         return None;
     }
@@ -314,8 +350,15 @@ pub fn restore_apostrophes(word: &str, uz_context: bool) -> Option<String> {
         }
         if let Some(w) = uz_weight(&cand) {
             let fewer = u32::MAX - mask.count_ones();
-            if best.is_none_or(|(bw, bf, _, _)| w > bw || (w == bw && fewer > bf)) {
-                best = Some((w, fewer, mask, uz().contains_key(cand.as_str())));
+            let direct = uz().contains_key(cand.as_str());
+            // Korpusda o'zi uchragan nomzod o'zak orqali taxmin qilinganidan ustun: ogirlab → o'g'irlab (o'zi
+            // uchraydi), og'ir|lab emas.
+            let solid = direct && w >= RESTORE_MIN;
+            if best.is_none_or(|(bw, bf, _, bd)| {
+                let bsolid = bd && bw >= RESTORE_MIN;
+                (solid, w, fewer) > (bsolid, bw, bf)
+            }) {
+                best = Some((w, fewer, mask, direct));
             }
         }
     }

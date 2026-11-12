@@ -181,6 +181,7 @@ fn convert_token(
     opts: &Options,
     own: f32,
     ctx: f32,
+    loose: bool,
     quote_open: &mut bool,
 ) -> (String, Reason) {
     if opts.cyrillic && cyrillic::has_cyrillic(tok) {
@@ -227,7 +228,7 @@ fn convert_token(
             .split('-')
             .any(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_uppercase()))
     {
-        return convert_compound(lead, core, trail, opts, ctx);
+        return convert_compound(lead, core, trail, opts, ctx, loose);
     }
     // Unlisiz katta harfli qisqartma (TSH, PTCH, CH) va o'zbekchada yo'q harfli so'z (Pöschl, Müller).
     if is_acronym(core) || has_foreign_letters(core) {
@@ -243,7 +244,7 @@ fn convert_token(
     if opts.restore_apostrophes
         && ctx > RESTORE_CTX_MIN
         && !opts.is_exception(core)
-        && let Some(r) = lang::restore_apostrophes(core, ctx >= RESTORE_EN_CTX)
+        && let Some(r) = lang::restore_apostrophes(core, ctx >= RESTORE_EN_CTX, loose)
     {
         restored = r;
         core = &restored;
@@ -294,6 +295,7 @@ fn convert_compound(
     trail: &str,
     opts: &Options,
     ctx: f32,
+    loose: bool,
 ) -> (String, Reason) {
     let mut out = String::with_capacity(core.len() + lead.len() + trail.len() + 4);
     out.push_str(lead);
@@ -308,7 +310,7 @@ fn convert_compound(
             0.0
         };
         // Qisqartmali birikma (C-uchli) atrofidagi lotin harflar gapni "inglizcha" qilib ko'rsatadi — e'tiborsiz.
-        let (conv, r) = convert_token(part, opts, own, ctx.max(0.0), &mut false);
+        let (conv, r) = convert_token(part, opts, own, ctx.max(0.0), loose, &mut false);
         out.push_str(&conv);
         reason = match (reason, r) {
             (_, Reason::Converted) | (Reason::Converted, _) => Reason::Converted,
@@ -386,6 +388,38 @@ fn is_lone_letter(core: &str) -> bool {
     )
 }
 
+/// So'zda o'/g' + apostrof bor (o'zbek, tog'): muallif apostrof qo'yadi.
+fn has_og_apostrophe(core: &str) -> bool {
+    let mut prev = ' ';
+    for c in core.chars() {
+        if is_apostrophe(c) && matches!(prev, 'o' | 'O' | 'g' | 'G') {
+            return true;
+        }
+        prev = c;
+    }
+    false
+}
+
+/// Muallif o'/g' apostrofini umuman qo'ymaydi: matnda o'/g' + apostrof yo'q, matn o'zbekcha, va kamida bitta
+/// so'z aniq tiklanadi (ozbek → o'zbek). Shunda ikki ma'noli so'zlar ham (oz / o'z, yoq / yo'q) tiklanadi.
+fn writes_without_apostrophes(text: &str, toks: &[Tok], opts: &Options) -> bool {
+    if !opts.restore_apostrophes || toks.iter().map(|t| t.evidence).sum::<f32>() <= 0.0 {
+        return false;
+    }
+    let cores = || {
+        toks.iter()
+            .map(|t| token::split_edges(&text[t.start..t.end]).core)
+    };
+    if cores().any(has_og_apostrophe) {
+        return false;
+    }
+    cores().any(|c| {
+        !token::is_protected(c)
+            && !opts.is_exception(c)
+            && lang::restore_apostrophes(c, false, false).is_some()
+    })
+}
+
 /// Matnni yangi alifboga o'giradi. Bo'shliqlar va qator tuzilishi aynan saqlanadi.
 pub fn convert(text: &str, opts: &Options) -> String {
     convert_explained(text, opts).0
@@ -404,6 +438,7 @@ pub fn convert_explained(text: &str, opts: &Options) -> (String, Vec<(String, Re
             0.0
         };
     }
+    let loose = writes_without_apostrophes(text, &toks, opts);
     let mut out = String::with_capacity(text.len() + 16);
     let mut report = Vec::with_capacity(toks.len());
     let mut last = 0;
@@ -425,7 +460,7 @@ pub fn convert_explained(text: &str, opts: &Options) -> (String, Vec<(String, Re
         }
         let ctx = context(&toks, sent_start..sent_end + 1, i - sent_start);
         let tok = &text[t.start..t.end];
-        let (conv, reason) = convert_token(tok, opts, t.evidence, ctx, &mut quote_open);
+        let (conv, reason) = convert_token(tok, opts, t.evidence, ctx, loose, &mut quote_open);
         report.push((tok.to_string(), reason, t.evidence));
         out.push_str(&conv);
         last = t.end;
@@ -444,6 +479,8 @@ pub fn to_old(text: &str, style: OldStyle) -> String {
 pub struct Session {
     recent: Vec<Tok>,
     quote_open: bool,
+    /// Muallif o'/g' apostrofini qo'ymayapti (oldingi so'z tiklandi) — `writes_without_apostrophes`.
+    loose: bool,
 }
 
 /// Yozish paytidagi tahrir: so'z oxiridan `delete` ta belgini o'chirib, `insert` yozilsin.
@@ -462,6 +499,7 @@ impl Session {
     pub fn reset(&mut self) {
         self.recent.clear();
         self.quote_open = false;
+        self.loose = false;
     }
 
     /// So'z tugadi (probel, tinish belgisi, Enter). O'zgarish kerak bo'lsa — tahrir.
@@ -486,7 +524,12 @@ impl Session {
         let mut window = self.recent.clone();
         window.push(me.clone());
         let ctx = context(&window, 0..window.len(), window.len() - 1);
-        let (conv, _) = convert_token(word_n, opts, own, ctx, &mut self.quote_open);
+        let (conv, _) = convert_token(word_n, opts, own, ctx, self.loose, &mut self.quote_open);
+        if has_og_apostrophe(core) {
+            self.loose = false;
+        } else if !self.loose && opts.restore_apostrophes && conv != word {
+            self.loose = lang::restore_apostrophes(core, false, false).is_some();
+        }
         if me.sentence_end {
             self.recent.clear();
         } else {

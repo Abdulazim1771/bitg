@@ -1,18 +1,23 @@
 # kirillda s|h yoki ch|h alohida bo'lgan so'zlar (Ishoq, Mushaf): yozuvdagi sh ş ga aylanmaydi
-# Leipzig Corpora Collection (CC BY 4.0): uzb_wikipedia_2021_100K-words.txt, uzb_community_2017-words.txt
+# Leipzig Corpora Collection (CC BY 4.0): uzb_wikipedia_2021_100K-sentences.txt, uzb_wikipedia_2016_100K-sentences.txt, uzb_wikipedia_2014_100K-sentences.txt, uzb_news_2020_10K-sentences.txt, uzb_newscrawl_2011_100K-sentences.txt, uzb_sentences.tsv, uzb_community_2017-sentences.txt; Mozilla Common Voice uz sentences (CC0); Tatoeba (CC BY 2.0 FR), https://tatoeba.org
+hibshonasi	2
 hibshonasida	2
-ishoq	8
-ishoqov	6
-ishoqova	56
+ishoq	10
+ishoqov	9
+ishoqova	57
 ishoqovada	2
 ishoqovaga	3
-ishoqovaning	7
+ishoqovaning	6
+ishoqovning	2
 mashara	3
 masharabozlik	7
+mushaf	2
 mushafi	2
 nusha	4
 nushada	5
 nushadagi	2
+nushadan	2
+nushasi	7
 nushasini	7
 roshamkorlik	2
 rosshamkorlik	2
