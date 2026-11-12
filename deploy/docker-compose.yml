@@ -9,7 +9,7 @@ services:
     networks:
       - edge
 
-# dtwin edge Caddy shu tarmoqda: bitg.dtwin.uz -> bitg-site:80
+# dtwin edge Caddy shu tarmoqda: bitg.uz -> bitg-site:80
 networks:
   edge:
     external: true

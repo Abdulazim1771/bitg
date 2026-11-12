@@ -322,7 +322,7 @@ bitg-cli` va `bitg eval eval/uz.tsv` (shuningdek `uz_noapos.tsv`, `en.tsv`).
 - [ ] **Linux (Ubuntu)** — IBus va Fcitx5 dvigateli (`bitg-core` C ABI orqali), `.deb` paket
 - [ ] **iOS** — klaviatura kengaytmasi (Keyboard Extension), yadro `staticlib` sifatida
 - [ ] macOS, Android; Word/brauzer kengaytmasi; B2B API
-- [x] Sayt: [bitg.dtwin.uz](https://bitg.dtwin.uz) (`web/`), sinov maydoni haqiqiy yadroda (Rust → WASM)
+- [x] Sayt: [bitg.uz](https://bitg.uz) (`web/`), sinov maydoni haqiqiy yadroda (Rust → WASM)
 
 ## Telefonda (Android, iOS)
 

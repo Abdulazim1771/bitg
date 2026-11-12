@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://bitg.dtwin.uz/sitemap.xml
+Sitemap: https://bitg.uz/sitemap.xml

@@ -1,4 +1,4 @@
-// bitg.dtwin.uz — demolar, 3D klaviatura, WASM sinov maydoni, sahifa alifbosi.
+// bitg.uz — demolar, 3D klaviatura, WASM sinov maydoni, sahifa alifbosi.
 // Demo natijalari bitg yadrosi (WASM) chiqishidan olingan: to'qima o'girish yo'q.
 (function () {
   'use strict';

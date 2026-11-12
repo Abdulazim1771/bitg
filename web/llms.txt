@@ -1,0 +1,13 @@
+# bitg
+
+> bitg — yozayotganingizda oʻzbek matnini 2026-yilgi yangi lotin alifbosiga (Ö, Ğ, Ş, Ç) avtomatik oʻgiradigan bepul, ochiq kodli dastur. Inglizcha soʻz, havola va kodga tegmaydi; Backspace bilan qaytariladi; internetsiz ishlaydi. Windows 10/11 uchun.
+
+Yangi oʻzbek alifbosi: Oʻ→Ö, Gʻ→Ğ, Sh→Ş, Ch→Ç; tutuq belgisi (ʼ) qoladi.
+
+## Sahifalar
+- [Bosh sahifa](https://bitg.uz/): dastur nima qiladi, brauzerdagi sinov maydoni, Windows MSI yuklab olish
+
+## Manba kodi va aloqa
+- [GitHub: dtwinuz/bitg](https://github.com/dtwinuz/bitg) — MIT yoki Apache-2.0
+- [Telegram kanal: @bitguz](https://t.me/bitguz)
+- [Telegram bot: @bitguzbot](https://t.me/bitguzbot)

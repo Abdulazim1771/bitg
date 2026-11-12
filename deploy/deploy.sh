@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# bitg.dtwin.uz: faqat origin/main deploy qilinadi.
+# bitg.uz: faqat origin/main deploy qilinadi.
 # web/ + WASM yadro (origin/main'ning toza worktree'sida yig'iladi) + MSI -> /opt/bitg-site -> health.
 set -euo pipefail
 
 HOST="${1:-dtwin}"
 REMOTE_DIR="${REMOTE_DIR:-/opt/bitg-site}"
-URL="${URL:-https://bitg.dtwin.uz}"
+URL="${URL:-https://bitg.uz}"
 CARGO="${CARGO:-cargo +stable-x86_64-pc-windows-msvc}"
 
 fail() { echo "deploy to'xtatildi: $*" >&2; exit 1; }
@@ -36,7 +36,7 @@ grep -q "download/bitg-$VER-x64.msi" "$STAGE/src/web/index.html" || fail "index.
 SITE="$STAGE/out/site"
 mkdir -p "$SITE/fonts" "$SITE/download"
 W="$STAGE/src/web"
-cp "$W/index.html" "$W/styles.css" "$W/app.js" "$W/theme.js" "$W/icon.svg" "$W/og.png" "$W/robots.txt" "$W/sitemap.xml" "$SITE/"
+cp "$W/index.html" "$W/styles.css" "$W/app.js" "$W/theme.js" "$W/icon.svg" "$W/og.png" "$W/robots.txt" "$W/sitemap.xml" "$W/llms.txt" "$W"/[0-9a-f]*.txt "$SITE/"
 cp "$W"/fonts/* "$SITE/fonts/"
 cp "$WASM" "$SITE/bitg_core.wasm"
 cp "$MSI" "dist/bitg-$VER-x64.msi.sha256" "$SITE/download/"
