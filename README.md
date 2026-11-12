@@ -164,21 +164,22 @@ Fayllar (qo'lda tahrirlash ham mumkin): `%APPDATA%\bitg\settings.ini` (`enabled`
 
 | Dastur turi | Holat |
 |---|---|
-| TSF'ni to'liq qo'llaydigan (WPF, UWP/WinUI, Word, Chrome'ning ko'p maydonlari) | ✅ ishlaydi (CI'da avtomatik e2e: WPF x64/x86, Win32 EDIT x64 — 36/36) |
-| Qt / eski IMM32 dasturlari (Telegram Desktop) | ⚠️ zaxira yo'l: bosilgan harflardan so'z yig'iladi, probeldan keyin Backspace + qayta yozish. **CI'da avtomatik sinov yo'q** — faqat qo'lda ([`docs/sinov-sozlar.md`](docs/sinov-sozlar.md)). Ma'lum muammolar pastda |
+| TSF'ni to'liq qo'llaydigan (WPF, UWP/WinUI, Word, Chrome'ning ko'p maydonlari) | ✅ ishlaydi (CI'da avtomatik e2e: WPF x64/x86, Win32 EDIT x64) |
+| Qt / eski IMM32 dasturlari (Telegram Desktop) | ⚠️ zaxira yo'l: bosilgan harflardan so'z yig'iladi, probeldan keyin Backspace + qayta yozish. CI'da Qt (PySide6 QTextEdit) e2e: birinchi so'z, bekor qilish, apostrof, tez yozilgan gap ([`tools/e2e/qt-e2e.py`](tools/e2e/qt-e2e.py)); qo'lda: [`docs/sinov-sozlar.md`](docs/sinov-sozlar.md). Ma'lum muammolar pastda |
 | Terminallar (Termius, Windows Terminal, PuTTY...) | ⛔ standart holatda o'chiq (buyruq va parol yoziladi); oynadan yoqish mumkin |
 
 #### Telegram (zaxira yo'l): ma'lum muammolar
 
 | Belgi | Sabab | Holat |
 |---|---|---|
-| `öozbek`, `şshapaloq`, `qqo'l` — so'z o'girilib, darhol buzilib qaytadi (logda `converted` va shu soniyada `undo`) | bitg o'zi yuborgan Backspace'ni foydalanuvchiniki deb bildi va «bekor qilish»ni ishga tushirdi: Qt `dwExtraInfo` belgisini (RETYPE_TAG) TSF'ga yetkazmaydi | 2026-11-12 tuzatildi: belgiga qo'shimcha sanagich (`State::take_retype`, 1.5 s oyna). **Telegramda qo'lda tasdiqlanmagan** |
+| `öozbek`, `şshapaloq`, `qqo'l` — so'z o'girilib, darhol buzilib qaytadi (logda `converted` va shu soniyada `undo`) | bitg o'zi yuborgan Backspace'ni foydalanuvchiniki deb bildi va «bekor qilish»ni ishga tushirdi: Qt `dwExtraInfo` belgisini (RETYPE_TAG) TSF'ga yetkazmaydi | 2026-11-12 tuzatildi: belgiga qo'shimcha sanagich (`State::take_retype`, 1.5 s oyna). Telegram logida o'z-o'zidan `undo` endi yo'q |
+| Tez yozganda so'z aralashadi (`shşahar`, `qo'l shaşap`) | probeldan keyingi Backspace + yangi so'z navbat oxiriga tushadi, foydalanuvchi oldindan yozgan harflar esa ulardan oldin turadi — Backspace'lar yangi harflarni o'chiradi | 2026-11-12 tuzatildi: tahrir navbatda turganda bosilgan tugmalar ushlanib, undan keyin qayta yuboriladi (tartib bo'yicha taniladi, `dwExtraInfo` kerak emas). Logda `fallback: keys typed ahead of retype, reordered`. CI'dagi Qt e2e tasdiqlagan; **Telegramda qo'lda tasdiqlanmagan** |
 | Birinchi so'z o'girilmaydi / `word not tracked` | sabab endi logda: `fallback: word not tracked: <sabab>` | log kutilmoqda |
 | Qotish | har tugma ishlovchisi ≥25 ms bo'lsa `slow test key / key down: N ms` | log kutilmoqda |
 
-Nega avtomatik sinab bo'lmaydi: Telegram sinovi uchun haqiqiy klaviatura bosishi (SendInput) kerak. Ishlab chiquvchi
-mashinasida global tugma yuborish taqiqlangan, u faqat CI VM'da (`GITHUB_ACTIONS=true`) ishlaydi. CI'da hozir faqat
-WPF va Win32 EDIT bor. Keyingi qadam: CI'ga Qt sinov ilovasini (IMM32 yo'li) qo'shish.
+Telegramning o'zini avtomatik sinab bo'lmaydi: haqiqiy klaviatura bosishi (SendInput) kerak, ishlab chiquvchi mashinasida
+global tugma yuborish taqiqlangan va u faqat CI VM'da (`GITHUB_ACTIONS=true`) ishlaydi. O'rniga CI'da Qt sinov ilovasi
+Telegram bilan bir xil yo'ldan (IMM32/CUAS, matn TSF'ga berilmaydi) o'tadi.
 
 `cargo run -p bitg-tsf --example activate` — profilni shu jarayonda yoqib, TSF nimani faol deb bilishini chiqaradi.
 

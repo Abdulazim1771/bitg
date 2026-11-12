@@ -86,6 +86,9 @@
                     Icon="bitg.ico"
                     Advertise="no" />
         </File>
+        <!-- Versiyali papkadan oldingi qo'lda yangilash qoldiqlari (bitg_tsf.old-HHMMSS.dll). Band bo'lsa —
+             Windows qayta yonganda o'chadi. -->
+        <RemoveFile Id="OldImeLeftovers" Name="bitg_tsf.old-*.dll" On="install" />
       </Component>
 
       <Component Id="Cli">
