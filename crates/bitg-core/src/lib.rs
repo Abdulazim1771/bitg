@@ -485,7 +485,13 @@ impl Session {
         };
         let mut window = self.recent.clone();
         window.push(me.clone());
-        let ctx = context(&window, 0..window.len(), window.len() - 1);
+        let mut ctx = context(&window, 0..window.len(), window.len() - 1);
+        // Yozish paytida o'ng kontekst hali yo'q: faqat o'zbek lug'atidagi kichik harfli so'zni (check shapaloq)
+        // oldingi inglizcha so'z yolg'iz to'xtatmasin. Butun matnda (convert) ikki tomon hal qiladi (mosh pit).
+        let (uz, en) = lang::known(core);
+        if uz && !en && own > 0.0 && core.starts_with(|c: char| c.is_lowercase()) {
+            ctx = ctx.max(0.0);
+        }
         let (conv, _) = convert_token(word_n, opts, own, ctx, &mut self.quote_open);
         if me.sentence_end {
             self.recent.clear();
