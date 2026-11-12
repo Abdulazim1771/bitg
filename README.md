@@ -188,6 +188,7 @@ Telegram bilan bir xil yo'ldan (IMM32/CUAS, matn TSF'ga berilmaydi) o'tadi.
 ```sh
 cargo install --path crates/bitg-cli
 bitg explain "Chat with the team, keyin choy"   # har bir so'z bo'yicha qaror
+bitg cyr "O'zbekiston shaharlari"               # lotindan kirillga: Ўзбекистон шаҳарлари
 ```
 
 ### Fayllar va oldindan ko'rish
@@ -205,6 +206,13 @@ bitg diff < maqola.txt             # matn bo'yicha: "3: shahar → şahar" (qato
 bo'linib ketgan bo'lsa ham abzats bitta matn sifatida o'giriladi va formatlash (qalin, kursiv, shrift) joyida
 qoladi. `.xlsx` da satrlar (shared strings, rich text, inline) o'giriladi — formula va sonlarga tegilmaydi.
 Boshqa XML va zip yozuvlari baytma-bayt ko'chiriladi. Kirish fayli ustiga faqat `--in-place` bilan yoziladi.
+
+### Kirill alifbosiga
+
+`bitg cyr` (Rust'da `bitg_core::to_cyrillic`) eski (o' g' sh ch ') va yangi (ö ğ ş ç ʼ) lotinni o'zbek
+kirilliga o'giradi; MATN bo'lmasa stdin'dan o'qiydi. Inglizcha so'z, havola, email va kod lotinda qoladi.
+e so'z boshida va unlidan keyin э, ya/yo/yu/ye → я/ё/ю/е, tutuq → ъ; ts → ц faqat -tsiya, -tsion, -tsey,
+-tsent, -tsept qismlarida (aytsa → айтса). Lotinda yo'qolgan ь, ц (sirk), щ, ы tiklanmaydi.
 
 Rust'dan:
 
