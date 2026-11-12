@@ -74,12 +74,17 @@ jobs:
             -File tools/e2e/tsf-e2e.ps1 -Ui wpf -Out "$env:RUNNER_TEMP\e2e-wpf-x86.txt"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
+      - name: Belgilangan matn tugmasi (tray ilovasi, Ctrl+Shift+Y)
+        if: ${{ !cancelled() }}
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/e2e/hotkey-e2e.ps1 -Out "$env:RUNNER_TEMP\e2e-hotkey.txt"
+
       - name: Loglarni yig'ish
         if: ${{ always() }}
         shell: pwsh
         run: |
           $d = New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\e2e-logs"
-          Copy-Item "$env:RUNNER_TEMP\e2e-*.txt", "$env:RUNNER_TEMP\msi.log", "$env:LOCALAPPDATA\bitg\tsf.log" $d -ErrorAction SilentlyContinue
+          Copy-Item "$env:RUNNER_TEMP\e2e-*.txt", "$env:RUNNER_TEMP\msi.log", "$env:LOCALAPPDATA\bitg\tsf.log", "$env:LOCALAPPDATA\bitg\hotkey.log" $d -ErrorAction SilentlyContinue
 
       - name: Loglar
         if: ${{ always() }}

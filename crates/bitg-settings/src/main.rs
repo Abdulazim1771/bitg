@@ -6,6 +6,8 @@
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 #[cfg_attr(not(windows), allow(dead_code))]
+mod hotkey;
+#[cfg_attr(not(windows), allow(dead_code))]
 mod logic;
 #[cfg(windows)]
 mod system;
@@ -46,7 +48,7 @@ mod app {
     use tray_icon::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
     use wry::{WebContext, WebView, WebViewBuilder};
 
-    use crate::{logic, system};
+    use crate::{hotkey, logic, system};
 
     const PAGE: &str = include_str!("ui.html");
     const ICON_ON: u16 = 1;
@@ -141,6 +143,9 @@ mod app {
             system::listen_show(move || {
                 let _ = p.send_event(Ev::Show);
             });
+            // Belgilangan matnni o'girish tugmasi: holati o'zgarsa oynaga xabar beradi.
+            let p = proxy.clone();
+            hotkey::start(move || reply(&p, status()));
         }
 
         let window = WindowBuilder::new()
@@ -239,6 +244,7 @@ mod app {
             "ime": system::ime_registered(),
             "keyboard": system::keyboard_added(),
             "autostart": system::autostart(),
+            "hotkey": hotkey::status_json(&bitg_tsf::config::load(), hotkey::registered()),
             "version": env!("CARGO_PKG_VERSION"),
         })
     }

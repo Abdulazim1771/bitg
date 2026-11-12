@@ -461,6 +461,19 @@
               <button role="radio" data-v="'"><span class="g">'</span>oddiy</button>
             </div></div>
         </div>
+        <h2>Belgilangan matn</h2>
+        <div class="group">
+          <div class="row"><span><span class="t" id="l-hk">Tugma bilan o'girish</span>
+            <span class="d">Istalgan dasturda matnni belgilab tugmani bosing — o'sha joyning o'zida yangi alifboga o'tadi. Clipboard'dagi narsa joyiga qaytariladi.</span></span>
+            <button class="sw" role="switch" data-k="hotkey" aria-labelledby="l-hk"></button></div>
+          <div class="row"><span><span class="t" id="l-hkk">Tugmalar</span>
+            <span class="d" id="hkState">bitg trayda turganda ishlaydi.</span></span>
+            <div class="seg" role="radiogroup" aria-labelledby="l-hkk" id="hotkeyKeys">
+              <button role="radio" data-v="ctrl+shift+y">Ctrl+Shift+Y</button>
+              <button role="radio" data-v="ctrl+shift+b">Ctrl+Shift+B</button>
+              <button role="radio" data-v="ctrl+shift+f8">Ctrl+Shift+F8</button>
+            </div></div>
+        </div>
         <h2>Ilova</h2>
         <div class="group">
           <div class="row"><span><span class="t" id="l-as">Windows bilan ishga tushish</span>
@@ -688,6 +701,7 @@
     document.body.classList.toggle("off", !s.enabled);
     for (const b of document.querySelectorAll(".sw[data-k]")) b.setAttribute("aria-checked", String(!!s[b.dataset.k]));
     radios($("tutuq"), s.tutuq);
+    renderHotkey();
     renderApps(); renderEx(); renderKb();
     morph && morph.setActive(s.enabled);
   }
@@ -704,6 +718,27 @@
   $("enabled").onclick = () => { s.enabled = !s.enabled; changed(s.enabled ? "bitg yoqildi" : "bitg o'chirildi"); };
   for (const b of document.querySelectorAll(".sw[data-k]")) b.onclick = () => { s[b.dataset.k] = !s[b.dataset.k]; changed(); };
   radioGroup($("tutuq"), (v) => { s.tutuq = v; changed(); });
+
+  /* ---------- Belgilangan matn tugmasi ---------- */
+  const keyLabel = (v) => v.split("+").map((p) => p.length <= 1 ? p.toUpperCase() : p[0].toUpperCase() + p.slice(1)).join("+");
+  function renderHotkey() {
+    const g = $("hotkeyKeys"), v = s.hotkey_keys || "ctrl+shift+y";
+    // settings.ini da qo'lda yozilgan, ro'yxatda yo'q birikma — alohida tugma sifatida ko'rsatiladi.
+    g.querySelector("[data-extra]")?.remove();
+    if (![...g.querySelectorAll("button")].some((b) => b.dataset.v === v)) {
+      const b = document.createElement("button"); b.setAttribute("role", "radio"); b.type = "button";
+      b.dataset.v = v; b.dataset.extra = ""; b.textContent = keyLabel(v); g.append(b);
+    }
+    radioGroup(g, (k) => { s.hotkey_keys = k; changed(); });
+    radios(g, v);
+    g.style.opacity = s.hotkey ? "" : ".5";
+    const h = status.hotkey, st = $("hkState");
+    st.textContent = !s.hotkey ? "O'chiq: tugmalar boshqa dasturlarga o'tadi."
+      : !s.enabled ? "bitg o'chiq — tugma ham ishlamaydi."
+      : h && h.on && !h.valid ? "settings.ini dagi birikma noto'g'ri — ro'yxatdan tanlang."
+      : h && h.on && h.label && !h.ok ? `${h.label} boshqa dasturda band — boshqasini tanlang.`
+      : "bitg trayda turganda ishlaydi. Terminallarda (Dasturlar ro'yxati) ishlamaydi.";
+  }
   radioGroup($("theme"), (v) => { store.set("bitg.theme", v); applyTheme(v); });
   $("autostart").onclick = () => send({ cmd: "autostart", on: !status.autostart });
 
@@ -730,6 +765,7 @@
     }
     $("autostart").setAttribute("aria-checked", String(!!status.autostart));
     $("ver").textContent = status.version || "—";
+    if (s) renderHotkey();
   }
 
   function askStats() { send({ cmd: "stats", tz: -new Date().getTimezoneOffset() * 60 }); }

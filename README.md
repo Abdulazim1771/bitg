@@ -257,6 +257,19 @@ yozish» (`undo_remember`, standart holatda **o'chiq**). Istisnolar sahifasida q
 **Brendlar:** `crates/bitg-core/src/data/names.txt` — sh/ch li savdo belgilari (Photoshop, Chevrolet, Toshiba)
 o'zbek qo'shimchasi bilan ham o'girilmaydi. Kishi va joy nomlari ro'yxatda yo'q: ular o'zbek imlosida yoziladi.
 
+### Belgilangan matnni o'girish (Ctrl+Shift+Y)
+
+Istalgan dasturda (bitg klaviaturasi tanlanmagan bo'lsa ham) matnni belgilab **Ctrl+Shift+Y** bosing — u o'sha
+joyda yangi alifboga o'tadi. Tugmani tray ilovasi ushlaydi: Ctrl+C bilan matn olinadi, sozlamalaringiz
+(istisnolar, inglizcha so'zlar, tutuq) bilan o'giriladi va Ctrl+V bilan joylanadi; clipboard'dagi avvalgi
+narsa keyin joyiga qaytariladi. Hech narsa belgilanmagan bo'lsa yoki matn o'zgarmasa — hech narsa qilinmaydi.
+Terminallarda (Dasturlar ro'yxati) ishlamaydi, chunki u yerda Ctrl+C jarayonni to'xtatadi.
+
+Sozlamalar → **Qoidalar → Belgilangan matn**: yoqish/o'chirish va tugmalar (Ctrl+Shift+Y, Ctrl+Shift+B,
+Ctrl+Shift+F8). `settings.ini` da: `hotkey=1`, `hotkey_keys=ctrl+shift+y` (Ctrl, Alt yoki Win bilan istalgan
+harf, raqam yoki F1–F24), `hotkey_old_keys=` — teskari yo'nalish (yangi → eski lotin), standart holatda
+o'chiq. Tugma boshqa dasturda band bo'lsa, oynada shu haqda yoziladi.
+
 ## Lug'at
 
 `crates/bitg-core/src/data/*.tsv` — faqat so'z va og'irlik (matnlar emas):

@@ -22,6 +22,9 @@ pub fn settings_json(c: &Config) -> Value {
         "auto_convert": c.auto_convert,
         "keymap": c.keymap,
         "layout": c.layout,
+        "hotkey": c.hotkey,
+        "hotkey_keys": c.hotkey_keys,
+        "hotkey_old_keys": c.hotkey_old_keys,
     })
 }
 
@@ -83,6 +86,19 @@ pub fn config_from(settings: &Value, exceptions: &[String]) -> Config {
     c.undo_remember = b("undo_remember", c.undo_remember);
     c.auto_convert = b("auto_convert", c.auto_convert);
     c.keymap = b("keymap", c.keymap);
+    c.hotkey = b("hotkey", c.hotkey);
+    // Tugmalar: faqat to'g'ri birikma qabul qilinadi (oynada ro'yxatdan tanlanadi, ini'da qo'lda ham).
+    if let Some(k) = settings.get("hotkey_keys").and_then(Value::as_str)
+        && crate::hotkey::parse(k).is_some()
+    {
+        c.hotkey_keys = config::keys_value(k);
+    }
+    if let Some(k) = settings.get("hotkey_old_keys").and_then(Value::as_str) {
+        let k = config::keys_value(k);
+        if k.is_empty() || crate::hotkey::parse(&k).is_some() {
+            c.hotkey_old_keys = k;
+        }
+    }
     if let Some(l) = settings.get("layout").and_then(Value::as_str)
         && (l == keymap::CUSTOM || keymap::PRESETS.contains(&l))
     {
@@ -405,6 +421,30 @@ mod tests {
         assert!(c.enabled);
         assert_eq!(c.opts.tutuq, '\u{02BC}');
         assert_eq!(c.disabled_apps, vec!["foo.exe"]);
+    }
+
+    #[test]
+    fn hotkey_settings_round_trip() {
+        let c = config_from(&json!({}), &[]);
+        assert!(c.hotkey && c.hotkey_keys == "ctrl+shift+y" && c.hotkey_old_keys.is_empty());
+        let c = config_from(
+            &json!({"hotkey": false, "hotkey_keys": "Ctrl+Shift+B", "hotkey_old_keys": "ctrl+shift+o"}),
+            &[],
+        );
+        assert!(
+            !c.hotkey && c.hotkey_keys == "ctrl+shift+b" && c.hotkey_old_keys == "ctrl+shift+o"
+        );
+        let v = settings_json(&c);
+        assert_eq!(v["hotkey"], false);
+        let back = config_from(&v, &[]);
+        assert_eq!(back.hotkey_keys, "ctrl+shift+b");
+        assert_eq!(back.hotkey_old_keys, "ctrl+shift+o");
+        let bad = config_from(
+            &json!({"hotkey_keys": "shift+y", "hotkey_old_keys": "q"}),
+            &[],
+        );
+        assert_eq!(bad.hotkey_keys, "ctrl+shift+y");
+        assert!(bad.hotkey_old_keys.is_empty());
     }
 
     #[test]
