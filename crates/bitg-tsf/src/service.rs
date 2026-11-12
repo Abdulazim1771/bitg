@@ -9,6 +9,7 @@
 //!    (`typed`), probeldan keyin Backspace + Unicode kiritish (SendInput) bilan almashtiriladi.
 
 use std::cell::{Cell, RefCell};
+use std::collections::VecDeque;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::rc::Rc;
 
@@ -22,8 +23,9 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
     KEYEVENTF_UNICODE, MAPVK_VK_TO_VSC, MAPVK_VSC_TO_VK, MapVirtualKeyExW, SendInput, ToUnicodeEx,
     VIRTUAL_KEY, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DELETE, VK_DOWN, VK_END, VK_ESCAPE, VK_HOME,
-    VK_LBUTTON, VK_LEFT, VK_LSHIFT, VK_LWIN, VK_MENU, VK_NEXT, VK_PACKET, VK_PRIOR, VK_RBUTTON,
-    VK_RETURN, VK_RIGHT, VK_RSHIFT, VK_RWIN, VK_SHIFT, VK_SPACE, VK_TAB, VK_UP,
+    VK_LBUTTON, VK_LCONTROL, VK_LEFT, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_MENU, VK_NEXT, VK_PACKET,
+    VK_PRIOR, VK_RBUTTON, VK_RCONTROL, VK_RETURN, VK_RIGHT, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_SHIFT,
+    VK_SPACE, VK_TAB, VK_UP,
 };
 use windows::Win32::UI::TextServices::{
     INSERT_TEXT_AT_SELECTION_FLAGS, ITfCompositionSink, ITfContext, ITfContextComposition,
@@ -113,12 +115,51 @@ struct State {
     retype_back: u32,
     retype_packet: u32,
     retype_until: Option<Instant>,
+    /// Zaxira tahririmiz navbatda turganda bosilgan (oldindan yozilgan) tugmalar tahrirdan keyin qayta
+    /// yuborilgan — shu tartibda qaytishi kutiladi. Qt `dwExtraInfo`ni bermagani uchun tartib bo'yicha taniladi.
+    resent: VecDeque<(Resent, Instant)>,
+    /// `OnTestKeyDown` ushlagan, `OnKeyDown` qayta yuboradigan tugma (VK, lParam, nima yuboriladi).
+    hold: Option<(u16, isize, Resent)>,
+}
+
+/// Qayta yuborilgan tugma: belgi (Unicode, Shift holati bosilgan paytdagidek) yoki tugmaning o'zi.
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum Resent {
+    Char(char),
+    Key(u16),
 }
 
 /// Zaxira tahriri tugmalari shu vaqt ichida kelishi kerak; kelmasa sanagich tashlanadi.
 const RETYPE_WINDOW: Duration = Duration::from_millis(1500);
 
 impl State {
+    /// Zaxira tahririmiz (yoki undan keyin qayta yuborilgan tugmalar) hali navbatda — yangi tugma ulardan
+    /// oldin dasturga yetsa, Backspace'larimiz foydalanuvchi harflarini o'chiradi.
+    fn retype_pending(&mut self) -> bool {
+        let now = Instant::now();
+        self.resent.retain(|&(_, until)| now < until);
+        let retyping = self.retype_until.is_some_and(|t| now < t)
+            && (self.retype_back > 0 || self.retype_packet > 0);
+        retyping || !self.resent.is_empty()
+    }
+
+    /// Bu tugma navbatdagi qayta yuborilgan tugmamizmi.
+    fn take_resent(&mut self, vk: u16) -> Option<Resent> {
+        let now = Instant::now();
+        self.resent.retain(|&(_, until)| now < until);
+        let &(front, _) = self.resent.front()?;
+        let hit = match front {
+            Resent::Char(_) => vk == VK_PACKET.0,
+            Resent::Key(k) => k == vk,
+        };
+        if hit {
+            self.resent.pop_front();
+            Some(front)
+        } else {
+            None
+        }
+    }
+
     fn expect_retype(&mut self, backs: usize, packets: usize) {
         self.retype_back += backs as u32;
         self.retype_packet += packets as u32;
@@ -177,6 +218,8 @@ impl Default for State {
             retype_back: 0,
             retype_packet: 0,
             retype_until: None,
+            resent: VecDeque::new(),
+            hold: None,
         }
     }
 }
@@ -526,6 +569,22 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
             if self.state.borrow_mut().take_retype(vk) {
                 return Ok(false);
             }
+            // Tahrirdan keyin qayta yuborilgan tugmamiz — endi to'g'ri tartibda, so'zga qo'shiladi.
+            let resent = self.state.borrow_mut().take_resent(vk);
+            if let Some(r) = resent {
+                self.observe_key(vk, l, Some(r));
+                return Ok(false);
+            }
+            // Tahririmiz hali navbatda: bu tugma undan oldin yetsa, Backspace'larimiz uni o'chiradi —
+            // ushlanadi va tahrirdan keyin (navbat oxiriga) qayta yuboriladi.
+            if let Some(r) = self.hold_ahead(vk, l) {
+                let mut st = self.state.borrow_mut();
+                if st.resent.is_empty() && st.hold.is_none() {
+                    log::write("fallback: keys typed ahead of retype, reordered");
+                }
+                st.hold = Some((vk, l, r));
+                return Ok(true);
+            }
             // O'zimiz yuborgan tugma — dasturga o'tadi.
             if !own_key()
                 && let Ok(ctx) = pic.ok()
@@ -535,7 +594,7 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
             {
                 return Ok(true);
             }
-            self.observe_key(vk, l);
+            self.observe_key(vk, l, None);
             Ok(false)
         })?;
         slow("test key", t0);
@@ -549,8 +608,17 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
     fn OnKeyDown(&self, pic: Ref<'_, ITfContext>, w: WPARAM, l: LPARAM) -> Result<BOOL> {
         let t0 = Instant::now();
         let eaten = guard("key down", || {
-            let Ok(ctx) = pic.ok() else { return Ok(false) };
             let (vk, l) = (w.0 as u16, l.0);
+            let hold = self.state.borrow_mut().hold.take();
+            if let Some((hvk, hl, r)) = hold.filter(|h| h.0 == vk) {
+                resend(hvk, hl, r);
+                self.state
+                    .borrow_mut()
+                    .resent
+                    .push_back((r, Instant::now() + RETYPE_WINDOW));
+                return Ok(true);
+            }
+            let Ok(ctx) = pic.ok() else { return Ok(false) };
             if own_key() {
                 return Ok(false);
             }
@@ -875,13 +943,59 @@ fn tagged_input(vk: VIRTUAL_KEY, scan: u16, flags: KEYBD_EVENT_FLAGS, tag: usize
 }
 
 impl TextService_Impl {
-    fn observe_key(&self, vk: u16, lparam: isize) {
+    /// Tahririmiz navbatda turganda kelgan tugma ushlanadimi va qanday qayta yuboriladi. Modifikatorlar va
+    /// Ctrl/Alt/Win bilan bosilganlar o'tadi (holati buzilmasin; tezkor tugma matnga yozmaydi).
+    fn hold_ahead(&self, vk: u16, lparam: isize) -> Option<Resent> {
+        let k = VIRTUAL_KEY(vk);
+        if vk == 0xE8
+            || matches!(
+                k,
+                VK_PACKET
+                    | VK_SHIFT
+                    | VK_LSHIFT
+                    | VK_RSHIFT
+                    | VK_CONTROL
+                    | VK_LCONTROL
+                    | VK_RCONTROL
+                    | VK_MENU
+                    | VK_LMENU
+                    | VK_RMENU
+                    | VK_LWIN
+                    | VK_RWIN
+                    | VK_CAPITAL
+            )
+            || held(VK_CONTROL)
+            || held(VK_MENU)
+            || held(VK_LWIN)
+            || held(VK_RWIN)
+            || !self.state.borrow_mut().retype_pending()
+        {
+            return None;
+        }
+        // Belgi hozir (Shift va tartib shu paytdagi holatda) aniqlanadi; bo'shliq va boshqaruv — tugma.
+        let c = self
+            .mapped(vk, lparam)
+            .or_else(|| key_char(vk, lparam))
+            .filter(|c| !c.is_whitespace() && (*c as u32) < 0x10000);
+        Some(match c {
+            Some(c) => Resent::Char(c),
+            None => Resent::Key(vk),
+        })
+    }
+
+    fn observe_key(&self, vk: u16, lparam: isize, resent: Option<Resent>) {
         // Menyuni to'xtatuvchi belgisiz tugma (suppress_menu) — so'z kuzatuviga ta'sir qilmaydi.
         if vk == 0xE8 {
             return;
         }
         let mut st = self.state.borrow_mut();
         let k = VIRTUAL_KEY(vk);
+        // Oldindan yozilgan harf, tahrirdan keyin qayta yuborilgan: so'zning davomi.
+        if let Some(Resent::Char(c)) = resent {
+            st.undo = None;
+            st.typed.push(c);
+            return;
+        }
         // Tartib belgisi tahrir sessiyasisiz yuborilgan (send_char): so'zning davomi.
         if k == VK_PACKET {
             let extra = unsafe { GetMessageExtraInfo() }.0 as u64;
@@ -1373,6 +1487,21 @@ fn resend_key(vk: u16, lparam: isize) {
     unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
 }
 
+/// Oldindan yozilib ushlangan tugmani navbat oxiriga (zaxira tahriridan keyin) qayta yuboradi.
+fn resend(vk: u16, lparam: isize, r: Resent) {
+    match r {
+        Resent::Char(c) => {
+            let u = c as u32 as u16;
+            let inputs = [
+                key_input(VIRTUAL_KEY(0), u, KEYEVENTF_UNICODE),
+                key_input(VIRTUAL_KEY(0), u, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP),
+            ];
+            unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+        }
+        Resent::Key(_) => resend_key(vk, lparam),
+    }
+}
+
 /// O'ng Alt bosilgan tugma ushlangach Alt qo'yib yuborilsa, dastur menyusi ochiladi. Belgisiz tugma
 /// yuborib buni to'xtatamiz (PowerToys usuli).
 fn suppress_menu() {
@@ -1403,5 +1532,30 @@ mod tests {
             }
         }
         assert_eq!(parse_preserved(&GUID::zeroed()), None);
+    }
+
+    #[test]
+    fn typed_ahead_keys_wait_for_retype_and_return_in_order() {
+        let mut st = State::default();
+        assert!(!st.retype_pending());
+        st.expect_retype(7, 6);
+        assert!(st.retype_pending());
+        st.retype_back = 0;
+        st.retype_packet = 0;
+        assert!(!st.retype_pending());
+
+        let until = Instant::now() + RETYPE_WINDOW;
+        st.resent.push_back((Resent::Char('o'), until));
+        st.resent.push_back((Resent::Key(VK_SPACE.0), until));
+        assert!(st.retype_pending());
+        assert_eq!(st.take_resent(VK_SPACE.0), None);
+        assert_eq!(st.take_resent(VK_PACKET.0), Some(Resent::Char('o')));
+        assert_eq!(st.take_resent(VK_SPACE.0), Some(Resent::Key(VK_SPACE.0)));
+        assert!(!st.retype_pending());
+
+        // Qaytmagan tugma navbatni abadiy band qilmaydi.
+        st.resent.push_back((Resent::Char('x'), Instant::now()));
+        assert!(!st.retype_pending());
+        assert_eq!(st.take_resent(VK_PACKET.0), None);
     }
 }

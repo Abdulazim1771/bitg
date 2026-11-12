@@ -1,6 +1,6 @@
 name: e2e
 
-# Haqiqiy Windows'da IME sinovi: MSI o'rnatiladi, tugmalar SendInput bilan bosiladi (WPF, Win32 EDIT, 32-bit).
+# Haqiqiy Windows'da IME sinovi: MSI o'rnatiladi, tugmalar SendInput bilan bosiladi (WPF, Win32 EDIT, Qt, 32-bit).
 # Actions budjetini tejash uchun faqat qo'lda (Actions → e2e → Run workflow) va versiya tegida.
 on:
   workflow_dispatch:
@@ -57,6 +57,14 @@ jobs:
         if: ${{ !cancelled() }}
         shell: powershell
         run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/e2e/tsf-e2e.ps1 -Ui winforms -Out "$env:RUNNER_TEMP\e2e-edit-x64.txt"
+
+      - name: Qt (64-bit, Telegram Desktop yo'li)
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check -q PySide6-Essentials==6.8.1
+          python tools/e2e/qt-e2e.py --out "$env:RUNNER_TEMP\e2e-qt-x64.txt"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
       - name: WPF (32-bit)
         if: ${{ !cancelled() }}
