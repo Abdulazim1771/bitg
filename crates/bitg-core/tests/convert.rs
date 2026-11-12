@@ -288,3 +288,53 @@ fn cheap_fuzz_never_panics_and_is_idempotent_on_output() {
         let _ = to_old(&once, OldStyle::Ascii);
     }
 }
+
+#[test]
+fn text_written_without_any_apostrophes() {
+    // Muallif o'/g' apostrofini umuman qo'ymaydi (boshqa so'z ham tiklandi): ikki ma'noli so'zlar ham tiklanadi.
+    assert_eq!(
+        c("Biz ozbek tilida oz fikrimizni aytamiz"),
+        "Biz özbek tilida öz fikrimizni aytamiz"
+    );
+    assert_eq!(
+        c("Ozbekistonda ish yoq, otgan yili kop odam ketdi"),
+        "Özbekistonda iş yöq, ötgan yili köp odam ketdi"
+    );
+    assert_eq!(c("Togri, hech narsa yoq."), "Töğri, heç narsa yöq.");
+    // apostrofsiz shakl kirill korpusda uchramaydi (boladi), o'zak orqali "bola|di" deb hisoblanmaydi
+    assert_eq!(c("Bu ish yaxshi boladi"), "Bu iş yaxşi böladi");
+    // korpusda o'zi uchragan nomzod o'zak orqali taxmindan ustun: o'g'irlab, og'ir|lab emas
+    assert_eq!(c("pulni ogirlab ketishdi"), "pulni öğirlab ketişdi");
+    // boshqa so'z tiklanmasa — ikki ma'noli so'zga tegilmaydi
+    assert_eq!(
+        c("Uyda qol, oz qoldi, ozod bor"),
+        "Uyda qol, oz qoldi, ozod bor"
+    );
+    // matnda o'/g' yozilgan bo'lsa — muallif apostrof qo'yadi, oz "kam" ma'nosida qoladi
+    assert_eq!(c("O'zbekistonda oz qoldi"), "Özbekistonda oz qoldi");
+}
+
+#[test]
+fn hyphenated_words_restore_part_by_part() {
+    assert_eq!(
+        c("Davlat qollab-quvvatlash dasturi togridan-togri ishlaydi"),
+        "Davlat qöllab-quvvatlaş dasturi töğridan-töğri işlaydi"
+    );
+    // bir bo'lagida o'/g' yozilgan: qolganiga tegilmaydi (ozmi-ko'pmi — "kam-ko'p")
+    assert_eq!(c("Ozmi-ko'pmi pul bor"), "Ozmi-köpmi pul bor");
+}
+
+#[test]
+fn cedilla_used_as_comma() {
+    assert_eq!(
+        c("Narx qimmat bolsa¸ olmaymiz"),
+        "Narx qimmat bölsa¸ olmaymiz"
+    );
+}
+
+#[test]
+fn sh_split_with_suffix() {
+    // kirillda s|h alohida (нусҳа, Мусҳаф, Исҳоқ): qo'shimchali shakl ham
+    assert_eq!(c("nushalari Ishoqqa Mushaf"), "nushalari Ishoqqa Mushaf");
+    assert_eq!(c("Is'hoq va mas'ul shaxs"), "Ishoq va masʼul şaxs");
+}
