@@ -1,4 +1,4 @@
-# bitg.dtwin.uz — yo'nalish kartasi
+# bitg.uz — yo'nalish kartasi
 
 Subject noun:      ikki harf bitta bo'ladigan bosish (sh → ş, o' → ö)
 States:            terish → so'z tugadi → birlashdi; himoya (inglizcha, havola); ⌫ bilan qaytish; tartib almashishi

@@ -9,7 +9,7 @@ services:
     init: true
     env_file: .env
     environment:
-      SITE_URL: ${SITE_URL:-https://bitg.dtwin.uz}
+      SITE_URL: ${SITE_URL:-https://bitg.uz}
     read_only: true
     security_opt:
       - no-new-privileges:true

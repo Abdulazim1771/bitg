@@ -65,15 +65,16 @@ impl Bot {
              ↩️ /eski matn — yangi alifbodan eski lotinga.\n\
              💬 Istalgan chatda: @{u} matn — natijani tanlang.\n\n\
              Kirill matnni ham yuborsangiz bo‘ladi. Inglizcha so‘z, havola va kodga tegmayman.\n\n\
-             Kompyuterda yozayotganingizda o‘zi o‘girsin desangiz — Windows uchun bitg: {s}",
+             Kompyuterda yozayotganingizda o‘zi o‘girsin desangiz — Windows uchun bitg: {s}/yuklab-olish/",
             u = self.user,
-            s = self.site
+            s = self.site.trim_end_matches('/')
         )
     }
 
     fn keyboard(&self) -> Value {
+        let dl = format!("{}/yuklab-olish/", self.site.trim_end_matches('/'));
         json!({ "inline_keyboard": [
-            [{ "text": "💻 Windows uchun bitg", "url": self.site }],
+            [{ "text": "💻 Windows uchun bitg", "url": dl }],
             [{ "text": "💬 Boshqa chatda ishlatish", "switch_inline_query": "" }]
         ]})
     }
