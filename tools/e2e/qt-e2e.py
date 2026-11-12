@@ -199,6 +199,15 @@ def main():
         lambda: check("backspace inside word", "çoy "),
         # 6) O'girilmagan so'zdan keyin Backspace odatdagidek
         clear, lambda: type_keys("nima "), w, lambda: tap(BACK), w, lambda: check("plain backspace", "nima"),
+        # 7) Tilmoch tartibi ([ ; ' = ö ş ç). Sozlama >1 s da qayta o'qiladi; "a " uni shu tugmada oladi.
+        lambda: type_keys(" "), lambda: settings(keymap=1, layout="tilmoch", auto_convert=0), w, w, w, w,
+        lambda: type_keys("a "), w,
+        clear, lambda: type_keys("[;' "), w, w, lambda: check("keymap: tilmoch letters", "öşç "),
+        lambda: settings(keymap=1, layout="tilmoch", auto_convert=1), w, w, w, w,
+        lambda: type_keys("a "), w,
+        # Tartib harfi so'z kuzatuviga kiradi (Qt belgini bermaydi — navbat bo'yicha): sh keyin o'giriladi
+        clear, lambda: type_keys("q[shimcha "), w, w, w, lambda: check("keymap: mapped letter tracked", "qöşimça "),
+        lambda: settings(), w, w, w, w, lambda: type_keys("a "), w,
     ]
 
     state = {"k": 0}

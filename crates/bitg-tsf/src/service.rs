@@ -107,9 +107,9 @@ struct State {
     preserved: Vec<(GUID, TF_PRESERVEDKEY)>,
     keys_dirty: bool,
     undo: Option<Undo>,
-    /// Yuborilgan, lekin hali qaytib kelmagan belgilarimiz (IMM32 kontekstida tartib uchun).
-    queued: u32,
-    queued_at: Option<Instant>,
+    /// Tartib belgilarimiz (`send_char`), yuborilgan, lekin hali qaytib kelmagan — UTF-16 birligi bo'yicha
+    /// (surrogatning ikkinchi yarmi `'\0'`). Qt `dwExtraInfo`ni bermagani uchun tartib bo'yicha taniladi.
+    remap: VecDeque<(char, Instant)>,
     /// Zaxira tahririmizdan hali kelmagan Backspace va Unicode tugmalar. Qt (Telegram) `dwExtraInfo`ni
     /// TSF'ga yetkazmaydi — belgi o'qilmasa, shu sanagich o'z tugmamizni foydalanuvchinikidan ajratadi.
     retype_back: u32,
@@ -133,6 +133,8 @@ enum Resent {
 
 /// Zaxira tahriri tugmalari shu vaqt ichida kelishi kerak; kelmasa sanagich tashlanadi.
 const RETYPE_WINDOW: Duration = Duration::from_millis(1500);
+/// Tartib belgimiz shu vaqt ichida qaytishi kerak.
+const REMAP_WINDOW: Duration = Duration::from_secs(1);
 
 impl State {
     /// Zaxira tahririmiz (yoki undan keyin qayta yuborilgan tugmalar) hali navbatda — yangi tugma ulardan
@@ -165,6 +167,21 @@ impl State {
         } else {
             None
         }
+    }
+
+    /// `send_char` yuboradigan belgi: har UTF-16 birligi navbatga (ikkinchi yarmi `'\0'`).
+    fn expect_remap(&mut self, c: char) {
+        let until = Instant::now() + REMAP_WINDOW;
+        self.remap.push_back((c, until));
+        if c.len_utf16() == 2 {
+            self.remap.push_back(('\0', until));
+        }
+    }
+
+    /// Yo'qolgan belgi navbatni abadiy band qilmasin.
+    fn purge_remap(&mut self) {
+        let now = Instant::now();
+        self.remap.retain(|&(_, until)| now < until);
     }
 
     fn expect_retype(&mut self, backs: usize, packets: usize) {
@@ -227,8 +244,7 @@ impl Default for State {
             preserved: Vec::new(),
             keys_dirty: true,
             undo: None,
-            queued: 0,
-            queued_at: None,
+            remap: VecDeque::new(),
             retype_back: 0,
             retype_packet: 0,
             retype_until: None,
@@ -654,8 +670,7 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
                 Some(Eat::Char(c)) => {
                     let mut st = self.state.borrow_mut();
                     st.undo = None;
-                    st.queued += 1;
-                    st.queued_at = Some(Instant::now());
+                    st.expect_remap(c);
                     drop(st);
                     send_char(c); // kelganda observe_key so'zga qo'shadi va navbatdan chiqaradi
                     return Ok(true);
@@ -726,14 +741,9 @@ impl TextService_Impl {
             return Some(Eat::Char(c));
         }
         let mut st = self.state.borrow_mut();
-        if st
-            .queued_at
-            .is_none_or(|t| t.elapsed() > Duration::from_secs(1))
-        {
-            st.queued = 0; // yo'qolgan belgi navbatni abadiy band qilmasin
-        }
+        st.purge_remap();
         let k = VIRTUAL_KEY(vk);
-        if st.queued == 0
+        if st.remap.is_empty()
             || k == VK_PACKET
             || vk == 0xE8
             || held(VK_CONTROL)
@@ -803,7 +813,8 @@ impl TextService_Impl {
             Outcome::Done | Outcome::Pending => self.state.borrow_mut().typed.push(c),
             Outcome::Failed => {
                 log::write("keymap: edit session failed, sending as unicode key");
-                send_char(c); // observe_key uni REMAP_TAG bo'yicha so'zga qo'shadi
+                self.state.borrow_mut().expect_remap(c);
+                send_char(c); // observe_key uni navbat bo'yicha so'zga qo'shadi
             }
         }
     }
@@ -1027,11 +1038,18 @@ impl TextService_Impl {
         // Tartib belgisi tahrir sessiyasisiz yuborilgan (send_char): so'zning davomi.
         if k == VK_PACKET {
             let extra = unsafe { GetMessageExtraInfo() }.0 as u64;
-            if extra >> 32 == REMAP_TAG {
-                // Surrogat juftning ikkinchi yarmida belgi 0 — o'tkazib yuboriladi.
-                if let Some(c) = char::from_u32(extra as u32).filter(|&c| c != '\0') {
+            st.purge_remap();
+            let tagged = extra >> 32 == REMAP_TAG;
+            if tagged || !st.remap.is_empty() {
+                let front = st.remap.pop_front().map(|(c, _)| c);
+                // Belgi bo'lsa — undan, bo'lmasa (Qt) navbatdan. Surrogatning ikkinchi yarmida 0 — o'tkaziladi.
+                let c = if tagged {
+                    char::from_u32(extra as u32)
+                } else {
+                    front
+                };
+                if let Some(c) = c.filter(|&c| c != '\0') {
                     st.typed.push(c);
-                    st.queued = st.queued.saturating_sub(1);
                 }
                 return;
             }
@@ -1589,6 +1607,18 @@ mod tests {
         assert!(!st.resent_first());
         st.retype_back = 0;
         st.retype_packet = 0;
+
+        // Tartib belgilari: surrogat juft ikki birlik, muddati o'tgani tashlanadi.
+        st.expect_remap('ö');
+        st.expect_remap('😀');
+        assert_eq!(
+            st.remap.iter().map(|&(c, _)| c).collect::<String>(),
+            "ö😀\0"
+        );
+        st.remap.push_back(('x', Instant::now()));
+        st.purge_remap();
+        assert_eq!(st.remap.len(), 3);
+        st.remap.clear();
 
         // Qaytmagan tugma navbatni abadiy band qilmaydi.
         st.resent.push_back((Resent::Char('x'), Instant::now()));
