@@ -118,6 +118,8 @@ struct State {
     /// Zaxira tahririmiz navbatda turganda bosilgan (oldindan yozilgan) tugmalar tahrirdan keyin qayta
     /// yuborilgan — shu tartibda qaytishi kutiladi. Qt `dwExtraInfo`ni bermagani uchun tartib bo'yicha taniladi.
     resent: VecDeque<(Resent, Instant)>,
+    /// `resent` boshidagi shuncha tugma oxirgi zaxira tahriridan oldin navbatga tushgan.
+    resent_ahead: usize,
     /// `OnTestKeyDown` ushlagan, `OnKeyDown` qayta yuboradigan tugma (VK, lParam, nima yuboriladi).
     hold: Option<(u16, isize, Resent)>,
 }
@@ -138,9 +140,13 @@ impl State {
     fn retype_pending(&mut self) -> bool {
         let now = Instant::now();
         self.resent.retain(|&(_, until)| now < until);
-        let retyping = self.retype_until.is_some_and(|t| now < t)
-            && (self.retype_back > 0 || self.retype_packet > 0);
-        retyping || !self.resent.is_empty()
+        self.retyping() || !self.resent.is_empty()
+    }
+
+    /// Zaxira tahririmiz tugmalari hali kelmagan.
+    fn retyping(&self) -> bool {
+        self.retype_until.is_some_and(|t| Instant::now() < t)
+            && (self.retype_back > 0 || self.retype_packet > 0)
     }
 
     /// Bu tugma navbatdagi qayta yuborilgan tugmamizmi.
@@ -154,6 +160,7 @@ impl State {
         };
         if hit {
             self.resent.pop_front();
+            self.resent_ahead = self.resent_ahead.saturating_sub(1);
             Some(front)
         } else {
             None
@@ -164,6 +171,13 @@ impl State {
         self.retype_back += backs as u32;
         self.retype_packet += packets as u32;
         self.retype_until = Some(Instant::now() + RETYPE_WINDOW);
+        // Hozir navbatdagi qayta yuborilganlar bu tahrirdan OLDIN keladi.
+        self.resent_ahead = self.resent.len();
+    }
+
+    /// Navbatda bu tugma qayta yuborilgan tugmamiz bo'lishi kerak (tahrirdan oldin yuborilgan).
+    fn resent_first(&self) -> bool {
+        self.resent_ahead.min(self.resent.len()) > 0
     }
 
     /// Bu tugma bizning zaxira tahririmizmi (belgi yoki sanagich bo'yicha).
@@ -219,6 +233,7 @@ impl Default for State {
             retype_packet: 0,
             retype_until: None,
             resent: VecDeque::new(),
+            resent_ahead: 0,
             hold: None,
         }
     }
@@ -566,12 +581,25 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
             self.sync_preserved();
             let (vk, l) = (w.0 as u16, l.0);
             // Zaxira tahririmiz (Backspace + yangi so'z) — dasturga o'tadi, so'z kuzatuviga kirmaydi.
-            if self.state.borrow_mut().take_retype(vk) {
+            // Navbat tartibi: tahrirdan oldin qayta yuborilganlar, keyin tahrir tugmalari, keyin qolganlar.
+            let resent_first = self.state.borrow().resent_first();
+            if !resent_first && self.state.borrow_mut().take_retype(vk) {
                 return Ok(false);
             }
             // Tahrirdan keyin qayta yuborilgan tugmamiz — endi to'g'ri tartibda, so'zga qo'shiladi.
             let resent = self.state.borrow_mut().take_resent(vk);
+            if resent.is_none() && resent_first && self.state.borrow_mut().take_retype(vk) {
+                return Ok(false);
+            }
             if let Some(r) = resent {
+                // Oldingi qayta yuborilgan tugma yangi o'girishni boshlagan bo'lsa, qolganlari endi uning
+                // tahriridan oldin turibdi — yana navbat oxiriga.
+                let mut st = self.state.borrow_mut();
+                if st.retyping() {
+                    st.hold = Some((vk, l, r));
+                    return Ok(true);
+                }
+                drop(st);
                 self.observe_key(vk, l, Some(r));
                 return Ok(false);
             }
@@ -1552,6 +1580,15 @@ mod tests {
         assert_eq!(st.take_resent(VK_PACKET.0), Some(Resent::Char('o')));
         assert_eq!(st.take_resent(VK_SPACE.0), Some(Resent::Key(VK_SPACE.0)));
         assert!(!st.retype_pending());
+
+        // Qayta yuborilganlar navbatda turganda yangi tahrir: ular tahrirdan oldin keladi.
+        st.resent.push_back((Resent::Key(VK_BACK.0), until));
+        st.expect_retype(5, 4);
+        assert!(st.resent_first() && st.retyping());
+        assert_eq!(st.take_resent(VK_BACK.0), Some(Resent::Key(VK_BACK.0)));
+        assert!(!st.resent_first());
+        st.retype_back = 0;
+        st.retype_packet = 0;
 
         // Qaytmagan tugma navbatni abadiy band qilmaydi.
         st.resent.push_back((Resent::Char('x'), Instant::now()));

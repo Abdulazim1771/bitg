@@ -148,9 +148,10 @@ $steps = @(
     },
     { TypeKeys ' ' }, $w, { Check 'undo: exception kept on next space' 'shahar ' },
     # 3) Inglizcha so'z o'zgarmaydi
-    { ClearBox }, { TypeKeys 'check ' }, $w, { Check 'english word kept' 'check ' },
-    # Tez yozish: bitta tikda hammasi navbatda — keyingi harflar IME tahriridan oldin turadi
+    # Tez yozish: bitta tikda hammasi navbatda — keyingi harflar IME tahriridan oldin turadi.
+    # Inglizcha so'zdan oldin: kontekst ("check" dan keyingi so'z) natijaga ta'sir qilmasin.
     { ClearBox }, { TypeKeys 'shoshma ok ' }, $w, $w, { Check 'typed ahead: shoshma ok' 'şoşma ok ' },
+    { ClearBox }, { TypeKeys 'check ' }, $w, { Check 'english word kept' 'check ' },
     # 4) Tilmoch tartibi (avto o'chiq)
     { Settings @{ keymap = 1; layout = 'tilmoch'; auto_convert = 0 } }, $w, $w, $w, $w,
     { TypeKeys 'a ' }, $w,
