@@ -4,6 +4,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versiyalar: [S
 
 ## [Unreleased]
 
+### Qo'shildi
+- **Linux panel belgisi: istisnolar va lug'at muharriri** ([#84](https://github.com/dtwinuz/bitg/issues/84)): menyudagi
+  «Istisnolar va lugʼat…» `exceptions.txt` ni tahrirlaydi (atomik yozuv, IME jonli oladi). «Panel belgisini yopish»
+  nomi aniqlashtirildi: kiritish usuli ishlashda davom etadi.
+- **CLI `--exceptions FAYL`** ([#39](https://github.com/dtwinuz/bitg/issues/39)): `bitg`, `explain`, `file`, `diff` da
+  `exceptions.txt` formatidagi istisnolar va lug'at qatorlari.
+- README: «Windows'da muammo bo'lsa» bo'limi ([#51](https://github.com/dtwinuz/bitg/issues/51)).
+- C ABI uchun tashqi integratsion test `crates/bitg-core/tests/ffi.rs` ([#38](https://github.com/dtwinuz/bitg/issues/38)).
+
+### Tuzatildi
+- Brendlar asl yozuvida qoladi: Shein, Bershka, Shiseido ([#66](https://github.com/dtwinuz/bitg/issues/66)),
+  Chirey, Changhe, Tchibo ([#65](https://github.com/dtwinuz/bitg/issues/65)).
+- Linux indikatori `settings.ini` ni IME bilan bir xil o'qiydi: BOM, katta-kichik harfli kalit, noto'g'ri qiymat
+  standartni o'zgartirmaydi ([#84](https://github.com/dtwinuz/bitg/issues/84)).
+- `.deb`: indikatorning GTK/Python bog'liqliklari `Depends` dan `Recommends` ga — IBus dvigateli va CLI ularsiz ham
+  o'rnatiladi ([#84](https://github.com/dtwinuz/bitg/issues/84)).
+
+### Xavfsizlik
+- Windows zaxira yo'li (SendInput, matn bermaydigan dasturlar): dastur IME'ni so'z davomida o'chirsa (parol maydoni),
+  har so'z oxirida qayta tekshiriladi va so'z o'girilmaydi; maxfiy maydon belgisi kelishi bilan yig'ilgan harflar
+  xotiradan tashlanadi ([#41](https://github.com/dtwinuz/bitg/issues/41)).
+
 ## [0.4.0] — 2026-11-13
 
 Foydalanuvchi uchun qisqasi — [NEWS.md](NEWS.md) (ilovadagi «Yangiliklar» shu fayldan).
