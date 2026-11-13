@@ -213,7 +213,7 @@ impl State {
 
     /// Bu tugma bizning zaxira tahririmizmi (belgi yoki sanagich bo'yicha).
     fn take_retype(&mut self, vk: u16) -> bool {
-        if !self.retype_until.is_some_and(|t| Instant::now() < t) {
+        if self.retype_until.is_none_or(|t| Instant::now() >= t) {
             self.retype_back = 0;
             self.retype_packet = 0;
         }
@@ -542,6 +542,8 @@ impl TextService_Impl {
         st.last.clear();
         st.session.reset();
         st.undo = None;
+        // zaxira yo'l uchun yig'ilgan harflar ham tashlanadi (#41)
+        st.typed.lost("sensitive field");
         Ok(())
     }
 
@@ -1162,6 +1164,21 @@ impl TextService_Impl {
                     }
                     return;
                 };
+                // Blind rejimda edit hodisasi kelmasligi mumkin: dastur IME'ni so'z davomida o'chirgan bo'lsa
+                // (parol maydoni fokusni o'zgartirmasdan ochilgan) — har so'z oxirida qayta tekshiriladi (#41).
+                if st.sensitive != Some(true)
+                    && st
+                        .watched
+                        .as_ref()
+                        .is_some_and(|(ctx, _)| keyboard_disabled(ctx))
+                {
+                    st.sensitive = Some(true);
+                    st.last.clear();
+                    st.session.reset();
+                    st.undo = None;
+                    log::write("sensitive field: keyboard disabled at word end, off");
+                    return;
+                }
                 if !st.converting() || !st.cfg.fallback {
                     return;
                 }

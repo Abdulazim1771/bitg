@@ -205,6 +205,20 @@ fn foreign_letters_and_german_sch_are_kept() {
 }
 
 #[test]
+fn foreign_surnames_are_kept() {
+    // tools/foreign_names_extra.txt (AQSh familiyalari): bosh harfli nom asl yozuvida qoladi
+    assert_eq!(
+        c("Chesney bilan gaplashdim, choy ichdik"),
+        "Chesney bilan gaplaşdim, çoy içdik"
+    );
+    assert_eq!(
+        c("Hochberg va Beauchamp kelishdi"),
+        "Hochberg va Beauchamp kelişdi"
+    );
+    assert_eq!(c("Shumakerning kitobi"), "Shumakerning kitobi");
+}
+
+#[test]
 fn dis_h_is_split() {
     assert_eq!(c("dishormonogenetik holat"), "dishormonogenetik holat");
 }
@@ -215,15 +229,44 @@ fn english_name_with_uzbek_suffix_is_kept() {
     assert_eq!(c("Shellga yozdim"), "Shellga yozdim");
     assert_eq!(c("Toshkentda boshda"), "Toşkentda boşda");
     // brendlar (data/names.txt): asl yozuvida qoladi, yonidagi söz ögiriladi
-    assert_eq!(c("Sheindan köylak oldim"), "Şeindan köylak oldim");
-    assert_eq!(c("Bershkada çegirma bor"), "Berşkada çegirma bor");
-    assert_eq!(c("Shiseido kremi qimmat"), "Şiseido kremi qimmat");
+    assert_eq!(c("Sheindan ko'ylak oldim"), "Sheindan köylak oldim");
+    assert_eq!(c("Bershkada chegirma bor"), "Bershkada çegirma bor");
+    assert_eq!(c("Shiseido kremi qimmat"), "Shiseido kremi qimmat");
 }
 
 #[test]
 fn already_converted_text_is_stable() {
     let once = c("O'zbekiston shaharlari, choy va ma'no");
     assert_eq!(c(&once), once);
+}
+
+#[test]
+fn brands_from_names_txt_are_kept() {
+    // brendlar (data/names.txt): asl yozuvida qoladi, yonidagi so'z o'giriladi
+    assert_eq!(
+        c("Logitechdan sichqoncha, Keychron klaviaturasini oldim"),
+        "Logitechdan siçqonça, Keychron klaviaturasini oldim"
+    );
+    assert_eq!(
+        c("Skechers krossovkasi va Sheglam kosmetikasi"),
+        "Skechers krossovkasi va Sheglam kosmetikasi"
+    );
+    assert_eq!(
+        c("Maybach va Shineray mashinalari"),
+        "Maybach va Shineray maşinalari"
+    );
+    assert_eq!(
+        c("Hochland pishlog'i, Auchanda chegirma"),
+        "Hochland pişloği, Auchanda çegirma"
+    );
+    assert_eq!(
+        c("Fintech va Edtech startaplari uchun grant"),
+        "Fintech va Edtech startaplari uçun grant"
+    );
+    assert_eq!(
+        c("Shivaki konditsioneri, Changhong televizori"),
+        "Shivaki konditsioneri, Changhong televizori"
+    );
 }
 
 #[test]
@@ -447,4 +490,14 @@ fn ambiguous_words_carry_an_alternative() {
         );
         assert_eq!(c("Tchibo qahvasini ichdim"), "Tchibo qahvasini içdim");
     }
+}
+
+#[test]
+fn car_and_food_brands_are_kept() {
+    // brendlar (data/names.txt): asl yozuvida qoladi, yonidagi so'z o'giriladi
+    assert_eq!(
+        c("Chirey va Changhe mashinalari"),
+        "Chirey va Changhe maşinalari"
+    );
+    assert_eq!(c("Tchibo qahvasini ichdim"), "Tchibo qahvasini içdim");
 }

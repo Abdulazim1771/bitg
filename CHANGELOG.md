@@ -4,15 +4,59 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versiyalar: [S
 
 ## [Unreleased]
 
+### Qo'shildi
+- **Linux panel belgisi: istisnolar va lug'at muharriri** ([#84](https://github.com/dtwinuz/bitg/issues/84)): menyudagi
+  «Istisnolar va lugʼat…» `exceptions.txt` ni tahrirlaydi (atomik yozuv, IME jonli oladi). «Panel belgisini yopish»
+  nomi aniqlashtirildi: kiritish usuli ishlashda davom etadi.
+- **CLI `--exceptions FAYL`** ([#39](https://github.com/dtwinuz/bitg/issues/39)): `bitg`, `explain`, `file`, `diff` da
+  `exceptions.txt` formatidagi istisnolar va lug'at qatorlari.
+- README: «Windows'da muammo bo'lsa» bo'limi ([#51](https://github.com/dtwinuz/bitg/issues/51)).
+- C ABI uchun tashqi integratsion test `crates/bitg-core/tests/ffi.rs` ([#38](https://github.com/dtwinuz/bitg/issues/38)).
+
+### Tuzatildi
+- Brendlar asl yozuvida qoladi: Shein, Bershka, Shiseido ([#66](https://github.com/dtwinuz/bitg/issues/66)),
+  Chirey, Changhe, Tchibo ([#65](https://github.com/dtwinuz/bitg/issues/65)).
+- Linux indikatori `settings.ini` ni IME bilan bir xil o'qiydi: BOM, katta-kichik harfli kalit, noto'g'ri qiymat
+  standartni o'zgartirmaydi ([#84](https://github.com/dtwinuz/bitg/issues/84)).
+- `.deb`: indikatorning GTK/Python bog'liqliklari `Depends` dan `Recommends` ga — IBus dvigateli va CLI ularsiz ham
+  o'rnatiladi ([#84](https://github.com/dtwinuz/bitg/issues/84)).
+
 ### Xavfsizlik
-- **SLSA Build L3:** reliz paketlarini reusable `build.yml` yig'adi va imzolaydi. Kod kompilyatsiya qiladigan
-  job'larda imzo tokeni (`id-token`) yo'q, attestation'ni alohida `attest` job yozadi. `release.yml` relizni faqat
-  har paket uchun `gh attestation verify --signer-workflow build.yml --source-ref <teg>` o'tgandan keyin ochadi.
-  Qo'lda ishga tushirilsa (`workflow_dispatch`) reliz zanjiri relizsiz sinaladi. bitg.uz deploy'i yangi imzolovchini
-  talab qiladi (v0.3.1 uchun eskisi).
-- `SECURITY.md`: qo'llab-quvvatlash muddati aniq yozildi (faqat eng so'nggi minor versiya).
+- Windows zaxira yo'li (SendInput, matn bermaydigan dasturlar): dastur IME'ni so'z davomida o'chirsa (parol maydoni),
+  har so'z oxirida qayta tekshiriladi va so'z o'girilmaydi; maxfiy maydon belgisi kelishi bilan yig'ilgan harflar
+  xotiradan tashlanadi ([#41](https://github.com/dtwinuz/bitg/issues/41)).
+
+## [0.4.0] — 2026-11-13
+
+Foydalanuvchi uchun qisqasi — [NEWS.md](NEWS.md) (ilovadagi «Yangiliklar» shu fayldan).
 
 ### Qo'shildi
+- **Shaxsiy lug'at** ([#77](https://github.com/dtwinuz/bitg/issues/77)): `exceptions.txt` da `so'z=yozuv` qatori so'zni
+  aynan shunday yozadi (`shamollash=şamollaş`), qo'shimchali shakli ham (`shamollashdan` → `şamollaşdan`), registr
+  yozilgandek. Bitta harfni saqlash: `bog'cha=bog'ça`. Uch platformada bitta fayl (`bitg_core::user`). Oynada
+  «Istisnolar» o'rniga «Lug'at»: har o'/g'/sh/ch — yoqib-o'chiriladigan chip, fayldan qo'shish va nusxalash.
+- **Ilova ichidan xabar berish** ([#78](https://github.com/dtwinuz/bitg/issues/78)): xato, taklif yoki noto'g'ri
+  o'girish, ekran parchasi yoki rasm, ixtiyoriy diagnostika. `POST bitg.uz/api/feedback` — bot ichidagi HTTP oqim
+  (`bot/src/web.rs`): tekshiruv, IP/o'rnatish/umumiy chegara, adminlarga Telegram orqali, chipta raqami.
+- **Yangilanish** ([#79](https://github.com/dtwinuz/bitg/issues/79)): `bitg.uz/update/stable.json`; ilova kuniga bir marta
+  tekshiradi, MSI faqat GitHub Releases'dan, hajm va SHA-256 mos kelsa `msiexec /passive`. Tarmoq — WinHTTP.
+- **«Yangiliklar» sahifasi** ([#80](https://github.com/dtwinuz/bitg/issues/80)): `NEWS.md` dan versiyalar lentasi,
+  yangilangandan keyin bir marta ochiladi (`whats_new`, `last_seen`).
+- Qoidalar: «Ehtiyotkor / Tavsiya / Maxsus» tayyor holatlari; apostrof tiklash lug'at so'zini ham tuzatishi yozildi.
+- **Ubuntu yuqori paneli** ([#81](https://github.com/dtwinuz/bitg/pull/81), [#75](https://github.com/dtwinuz/bitg/issues/75)):
+  `bitg-indicator` (Ayatana AppIndicator) — bitg ikonkasi va menyu: yoqish/o'chirish, avtomatik o'girish, kirillni
+  o'girish (`~/.config/bitg/settings.ini` ga yoziladi, IME darhol oladi), o'chiq holat uchun alohida ikonka.
+  Ilovalar menyusida «bitg» launcher, GNOME/Unity sessiyasida avtostart. `.deb` bog'liqligi: `python3-gi`,
+  `gir1.2-gtk-3.0`, `gir1.2-ayatanaappindicator3-0.1`.
+- **Xorijiy ismlar ro'yxati kengaydi** ([#71](https://github.com/dtwinuz/bitg/pull/71)): `foreign_names.txt` 1 394 dan
+  3 419 nomga (AQSh aholi ro'yxati familiyalari va NameDatabases, o'zbek kirill korpusida uchramaydiganlari;
+  `tools/foreign_names_extra.txt`). `Chesney`, `Sanchez` kabi nomlar o'girilmaydi.
+- **Brendlar va texnik atamalar** ([#69](https://github.com/dtwinuz/bitg/pull/69)): `names.txt` ga 55 ta nom
+  (`fintech`, `edtech`, `biotech`, `Semrush`, `Hashnode`, `Sketchfab`, `Genshin`, `Launchpad` …) — o'girilmaydi.
+
+- **crates.io:** `bitg-core` kutubxonasi crates.io'da (`cargo add bitg-core`; 0.3.1 v0.3.1 tegidan qo'lda chiqarildi).
+  Keyingi relizlarda `release.yml` dagi `crates-io` job uni Trusted Publishing (OIDC, `crates-io` environment) bilan
+  chiqaradi: repoda crates.io tokeni saqlanmaydi.
 - **Chocolatey paketi** (`packaging/chocolatey`, `tools/release/packaging.py` yaratadi): `choco install bitg`. MSI GitHub
   Release'dan SHA-256 bilan olinadi; `/NoAutostart`, `/NoKeyboard` parametrlari. `packaging` workflow paketni haqiqiy
   Windows'da o'rnatib, parametrni tekshirib, o'chiradi; nashr — qo'lda (`publish`, `CHOCO_API_KEY`).
@@ -27,7 +71,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versiyalar: [S
 - `CONTRIBUTING.md`: birinchi hissa uchun qadamma-qadam yo'riqnoma (fork, branch, `commit -s`, PR).
 - Xavfsizlik tekshiruvi 2026-11-13 (`docs/ASSURANCE.md` 8-bo'lim): 11 topilma, kritik va yuqori yo'q.
 
+### Tuzatildi
+- Havola, kod, `@user` va brend gap kontekstida inglizcha deb ovoz bermaydi: «fetch() chaqiruvi», «Shohjahon
+  McDonald's» endi o'giriladi ([#76](https://github.com/dtwinuz/bitg/issues/76)). Baholash o'zgarmadi.
+- TSF: `take_retype()` sharti soddalashtirildi ([#37](https://github.com/dtwinuz/bitg/issues/37)).
+
+- **`bitg file`: zip-bomba himoyasi** ([#27](https://github.com/dtwinuz/bitg/issues/27)). O'giriladigan har XML
+  qism ochilganda 256 MiB dan oshsa, o'girish xato bilan to'xtaydi (xotira to'lib qolmaydi). O'girilmaydigan
+  qismlar avvalgidek ochilmasdan ko'chiriladi.
+
 ### Xavfsizlik
+- **SLSA Build L3:** reliz paketlarini reusable `build.yml` yig'adi va imzolaydi. Kod kompilyatsiya qiladigan
+  job'larda imzo tokeni (`id-token`) yo'q, attestation'ni alohida `attest` job yozadi. `release.yml` relizni faqat
+  har paket uchun `gh attestation verify --signer-workflow build.yml --source-ref <teg>` o'tgandan keyin ochadi.
+  Qo'lda ishga tushirilsa (`workflow_dispatch`) reliz zanjiri relizsiz sinaladi. bitg.uz deploy'i yangi imzolovchini
+  talab qiladi (v0.3.1 uchun eskisi).
+- `SECURITY.md`: qo'llab-quvvatlash muddati aniq yozildi (faqat eng so'nggi minor versiya).
+- OpenSSF Baseline: har PR'da DCO (`Signed-off-by`) tekshiruvi (`dco.yml`); `cargo deny` endi crates.io'dan
+  tashqari manbani ham rad etadi va relizdan oldin (`release.yml`) qayta yuradi. `SECURITY.md` ga SCA/SAST tuzatish
+  muddatlari, VEX (`VEX.openvex.json`) va sirlar siyosati; `GOVERNANCE.md` ga kirish huquqi berish tartibi va loyiha
+  repolari ro'yxati; `CONTRIBUTING.md` ga bog'liqlik siyosati. `.github/security-insights.yml`, `CITATION.cff`,
+  `.zenodo.json` qo'shildi.
+
 - Reliz job'i: token `.git/config`da qolmaydi, imzo kaliti faqat kompilyatsiya qilmaydigan qadamda, teg nomi
   skriptga `env` orqali beriladi.
 - `input.dll` faqat System32 dan yuklanadi; zaxira yo'lda so'z buferi 40 belgidan oshmaydi.
@@ -39,11 +104,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versiyalar: [S
 - Windows: sozlamalar va log papkasi `SHGetKnownFolderPath` dan olinadi, bitg yuklangan ilovaning muhitidagi `%APPDATA%` dan emas ([#45](https://github.com/dtwinuz/bitg/issues/45)).
 - IBus va Fcitx5: kursor oldidagi matn faqat kerak bo'lganda va oxirgi 128 belgi olinadi (macOS kabi) ([#46](https://github.com/dtwinuz/bitg/issues/46)).
 - CI: `cargo deny check advisories` (RustSec), Python paketlari xesh bilan qotirilgan ([#47](https://github.com/dtwinuz/bitg/issues/47)).
-
-### Tuzatildi
-- **`bitg file`: zip-bomba himoyasi** ([#27](https://github.com/dtwinuz/bitg/issues/27)). O'giriladigan har XML
-  qism ochilganda 256 MiB dan oshsa, o'girish xato bilan to'xtaydi (xotira to'lib qolmaydi). O'girilmaydigan
-  qismlar avvalgidek ochilmasdan ko'chiriladi.
 
 ## [0.3.1] — 2026-11-13
 

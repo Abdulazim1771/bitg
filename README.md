@@ -6,6 +6,8 @@
 [![license](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#litsenziya)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/dtwinuz/bitg/badge)](https://scorecard.dev/viewer/?uri=github.com/dtwinuz/bitg)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16620/badge)](https://www.bestpractices.dev/projects/16620)
+[![REUSE status](https://api.reuse.software/badge/github.com/dtwinuz/bitg)](https://api.reuse.software/info/github.com/dtwinuz/bitg)
+[![crates.io](https://img.shields.io/crates/v/bitg-core?label=crates.io)](https://crates.io/crates/bitg-core)
 [![platforms](https://img.shields.io/badge/platform-Windows%2010%2F11%20%C2%B7%20Linux%20%C2%B7%20macOS-informational)](https://bitg.uz/yuklab-olish/)
 
 **O'zbek matnini 2026-yilgi lotin alifbosiga o'giradi — yozish paytida, hamma joyda, inglizchani buzmasdan.**
@@ -172,12 +174,34 @@ O'rnatuvchini qurish (WiX 5, .NET SDK): `pwsh installer/build.ps1` → `dist/bit
 [`release`](.github/workflows/release.yml) workflow MSI, Linux `.deb` va macOS `.pkg` paketlarini
 ([`build`](.github/workflows/build.yml) reusable workflow'i yig'adi va imzolaydi, SLSA Build L3) GitHub Release'ga chiqaradi.
 
+#### Windows'da muammo bo'lsa
+
+bitg o'zi ENG ga qaytib ketsa, yozganda o'girmasa yoki biror dasturda xalaqit bersa:
+
+1. **Bir dasturda o'chirib turish.** bitg sozlamalari → **Dasturlar** → kerakli dasturni o'chiring. Boshqa dasturlarda
+   bitg ishlashda davom etadi. Hammasini to'xtatish — chap paneldagi **Yoqilgan** almashtirgichi.
+2. **Windows versiyasi.** `Win + R` → `winver` → oynadagi qatorni yozing (masalan, `24H2 (build 26100.xxxx)`).
+3. **bitg versiyasi.** Sozlamalar oynasining pastida yoki PowerShell'da `bitg --version`.
+4. **Qayerda bo'ladi.** Faqat Start menyu / qidiruvdami yoki Notepad, Chrome, Telegram'da hammi?
+5. **Log.** `Win + R` → `%LOCALAPPDATA%\bitg` → ochilgan papkadagi `tsf.log`. Start menyu va qidiruv log'ni
+   alohida joyga yozadi, uni bitta faylga yig'ish:
+
+   ```powershell
+   Get-ChildItem "$env:LOCALAPPDATA\Packages\*\AC\bitg\tsf.log" | ForEach-Object { "== $($_.FullName)"; Get-Content $_ } | Set-Content "$env:USERPROFILE\Desktop\bitg-ac.log"
+   ```
+
+6. **Xabar berish.** Sozlamalar → **Xabar berish** (skrinshot bilan), yoki
+   [GitHub issue](https://github.com/dtwinuz/bitg/issues/new) ochib 2–4 javoblarni yozing, `tsf.log` va `bitg-ac.log`
+   ni biriktiring.
+
+Log'larda yozgan matningiz yo'q: faqat dastur nomi, hodisa va xato kodi (`converted`, `word unchanged (len N)`).
+
 ### O'rnatish (Linux: Ubuntu 22.04+, Debian 12+, x64)
 
 [Releases](https://github.com/dtwinuz/bitg/releases) dan paketni oling. IBus (Ubuntu, Debian GNOME standarti):
 
 ```bash
-sudo apt install ./bitg_0.3.1_amd64.deb      # IBus dvigateli + bitg CLI
+sudo apt install ./bitg_0.4.0_amd64.deb      # IBus dvigateli + bitg CLI
 ibus restart                                  # yoki tizimdan chiqib qayta kiring
 ```
 
@@ -193,7 +217,7 @@ sudo apt update && sudo apt install bitg     # Fcitx5: fcitx5-bitg
 ```
 
 So'ng **Sozlamalar → Klaviatura → Kiritish manbasi qo'shish → O'zbek → bitg** va **Super + Probel** bilan tanlang.
-Fcitx5 ishlatsangiz (KDE va boshqalar), `fcitx5-bitg_0.3.1_amd64.deb` ni o'rnatib, `fcitx5-configtool` da «bitg» ni
+Fcitx5 ishlatsangiz (KDE va boshqalar), `fcitx5-bitg_0.4.0_amd64.deb` ni o'rnatib, `fcitx5-configtool` da «bitg» ni
 qo'shing — bu qo'shimcha hozircha **sinov bosqichida**.
 
 | Nima | Qayerda |
@@ -201,6 +225,18 @@ qo'shing — bu qo'shimcha hozircha **sinov bosqichida**.
 | IBus dvigateli | `/usr/libexec/ibus-engine-bitg`, `/usr/share/ibus/component/bitg.xml` |
 | Fcitx5 qo'shimchasi | `/usr/lib/<arch>/fcitx5/bitg.so`, `/usr/share/fcitx5/{addon,inputmethod}/bitg.conf` |
 | Sozlamalar | `~/.config/bitg/settings.ini`, `exceptions.txt` — Windows bilan bir xil format, o'zgarish ~1 soniyada qo'llanadi |
+| Yuqori panel belgisi | `/usr/bin/bitg-indicator`; ilovalar menyusida «bitg», sessiya bilan `/etc/xdg/autostart/bitg.desktop` |
+
+**Yuqori panel belgisi** (GNOME, Unity): menyuda yoqish/o'chirish, avtomatik o'girish, kirillni o'girish va
+istisnolar/lug'at muharriri bor; o'zgarish yozilayotgan dasturga darhol qo'llanadi. «Panel belgisini yopish» faqat
+belgini yopadi, kiritish usuli ishlashda davom etadi. Belgi `python3-gi`, `gir1.2-gtk-3.0`,
+`gir1.2-ayatanaappindicator3-0.1` ni talab qiladi (apt ularni tavsiya sifatida o'zi o'rnatadi). Ubuntu'da belgi
+standart «AppIndicator» kengaytmasi orqali ko'rinadi; toza GNOME'da shu kengaytmani yoqing. Sessiya bilan ochilishini
+o'chirish (faqat shu foydalanuvchi uchun):
+
+```bash
+mkdir -p ~/.config/autostart && printf '[Desktop Entry]\nHidden=true\n' > ~/.config/autostart/bitg.desktop
+```
 
 Matnni bermaydigan dasturlarda so'z yozilayotganda tagi chizilgan (preedit) ko'rinadi va probelda o'girilib yoziladi.
 Parol, PIN, email maydonlari va terminallarda bitg o'chiq turadi. Yig'ish: `linux/build-deb.sh` (`libibus-1.0-dev`,
@@ -231,7 +267,7 @@ sahifada va [Releases](https://github.com/dtwinuz/bitg/releases) da): bitta univ
 Baribir ochish**, yoki terminalda:
 
 ```bash
-sudo installer -pkg ~/Downloads/bitg-0.3.1-macos.pkg -target /
+sudo installer -pkg ~/Downloads/bitg-0.4.0-macos.pkg -target /
 ```
 
 bitg `/Library/Input Methods/bitg.app` ga yoziladi va kiritish manbalariga o'zi qo'shiladi (ko'rinmasa — tizimdan
@@ -299,7 +335,11 @@ Telegram bilan bir xil yo'ldan (IMM32/CUAS, matn TSF'ga berilmaydi) o'tadi.
 cargo install --path crates/bitg-cli
 bitg explain "Chat with the team, keyin choy"   # har bir so'z bo'yicha qaror
 bitg cyr "O'zbekiston shaharlari"               # lotindan kirillga: Ўзбекистон шаҳарлари
+bitg --exceptions ex.txt "shahar choy"          # ex.txt dagi so'zlar o'girilmaydi: shahar çoy
 ```
+
+`--exceptions FAYL` `bitg`, `bitg explain`, `bitg file` va `bitg diff` da ishlaydi. Format kiritish usullari
+o'qiydigan `exceptions.txt` bilan bir xil: har qatorda bitta so'z, `#` bilan izoh, `so'z=yozuv` — lug'at qatori.
 
 ### Fayllar va oldindan ko'rish
 
@@ -391,7 +431,7 @@ tayyor hash-jadval bo'lib kiradi (`crates/bitg-core/build.rs`).
 | `sh_split.tsv` | kirillda s+h alohida so'zlar (Исҳоқ, нусҳа, Мусҳаф): `sh` → ş bo'lmaydi | yuqoridagi kirill gaplar |
 | `en.tsv` | inglizcha so'z → SCOWL darajasi | [SCOWL 2020.12.07](http://wordlist.aspell.net/) (Kevin Atkinson, ruxsat beruvchi litsenziya) |
 | `names.txt` | brendlar (qo'lda) | — |
-| `foreign_names.txt` (1 394 nom) | faqat xorijiy imloda uchraydigan kishi/joy nomlari (ch/sh bor, `uz.tsv` da yo'q): `Michelle`, `Rachel`, `Sanchez` | SCOWL `*-proper-names` (daraja ≤ 80), `tools/build_foreign_names.py` |
+| `foreign_names.txt` (3 419 nom) | faqat xorijiy imloda uchraydigan kishi/joy nomlari (ch/sh bor, `uz.tsv` da yo'q): `Michelle`, `Rachel`, `Sanchez`, `Chesney` | SCOWL `*-proper-names` (daraja ≤ 80); `tools/foreign_names_extra.txt` — AQSh aholi ro'yxati familiyalari (US Census Bureau) va [NameDatabases](https://github.com/smashew/NameDatabases) (jamoat mulki), o'zbek kirill korpusida uchramaydiganlari; `tools/build_foreign_names.py` |
 
 **Nomlar.** O'zbek imlosida ham shunday yoziladigan nom (Ричард → `Richard`, `Pushkin`, `Shohruh`) o'giriladi:
 `Riçard`, `Puşkin`. Xorijiy imlodagi nom (o'zbek korpusida yo'q, inglizcha nomlar ro'yxatida bor yoki o'zbek
