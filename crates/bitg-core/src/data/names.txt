@@ -71,6 +71,8 @@ shacman
 mitsubishi
 peugeot
 skoda
+chirey
+change
 # kiyim, go'zallik
 chanel
 hermes
@@ -88,6 +90,7 @@ snickers
 starbucks
 shakeshack
 mcdonalds
+tchibo
 # yoqilg'i, bank, to'lov
 shell
 chase
