@@ -169,7 +169,8 @@ gh attestation verify .\bitg-*-x64.msi -R dtwinuz/bitg  # GitHub Actions'da shu 
 
 O'rnatuvchini qurish (WiX 5, .NET SDK): `pwsh installer/build.ps1` → `dist/bitg-<versiya>-x64.msi` + `.sha256`.
 `-CertThumbprint` yoki `BITG_SIGN_PFX` bilan binarlar va MSI imzolanadi (SHA-256, vaqt tamg'asi). `v*` tegi qo'yilsa,
-[`release`](.github/workflows/release.yml) workflow MSI, Linux `.deb` va macOS `.pkg` paketlarini GitHub Release'ga chiqaradi.
+[`release`](.github/workflows/release.yml) workflow MSI, Linux `.deb` va macOS `.pkg` paketlarini
+([`build`](.github/workflows/build.yml) reusable workflow'i yig'adi va imzolaydi, SLSA Build L3) GitHub Release'ga chiqaradi.
 
 ### O'rnatish (Linux: Ubuntu 22.04+, Debian 12+, x64)
 

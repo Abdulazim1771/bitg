@@ -49,7 +49,7 @@ The project must be able to continue if any one person disappears.
 | Asset | Where it lives | Who can use it |
 |---|---|---|
 | Repository, settings, rulesets | GitHub `dtwinuz/bitg` | both maintainers (organization owners) |
-| Release build and publishing | GitHub Actions (`.github/workflows/release.yml`, started by a `v*` tag) — no personal machine needed | both maintainers |
+| Release build and publishing | GitHub Actions (`.github/workflows/release.yml` + reusable `build.yml`, started by a `v*` tag) — no personal machine needed | both maintainers |
 | Release secrets (code-signing certificate when present) | GitHub Actions secrets | both maintainers can rotate them |
 | apt repository signing key | encrypted offline backup | lead maintainer; handover to @leverow is pending |
 | `bitg.uz` web server and DNS | server configuration in `deploy/` (Caddy, deploy scripts) | lead maintainer; handover to @leverow is pending |

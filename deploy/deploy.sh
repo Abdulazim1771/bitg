@@ -36,7 +36,12 @@ WASM="$ROOT/target/site/wasm32-unknown-unknown/release/bitg_core.wasm"
 
 VER="$(sed -n 's/^version = "\(.*\)"/\1/p' "$STAGE/src/Cargo.toml" | head -1)"
 # Reliz fayllari faqat GitHub Release v$VER dan olinadi va CI qurganiga attestatsiya bilan tekshiriladi:
-# sayt aynan release.yml yig'gan faylni tarqatadi, lokal yig'ilgan yoki almashtirilgan faylni emas.
+# sayt aynan CI yig'gan faylni tarqatadi, lokal yig'ilgan yoki almashtirilgan faylni emas.
+# v0.3.1 ni release.yml imzolagan; keyingi relizlarni reusable build.yml imzolaydi (SLSA Build L3).
+case "$VER" in
+  0.3.1) SIGNER=release.yml ;;
+  *) SIGNER=build.yml ;;
+esac
 DIST="$STAGE/dist"
 MSI="$DIST/bitg-$VER-x64.msi"
 PKGS="$DIST/bitg_${VER}_amd64.deb $DIST/fcitx5-bitg_${VER}_amd64.deb $DIST/bitg-${VER}-macos.pkg"
@@ -45,11 +50,11 @@ gh release download "v$VER" -R dtwinuz/bitg -D "$DIST" -p '*.msi' -p '*.msi.sha2
 for d in $MSI $PKGS; do
   [ -f "$d" ] || fail "$(basename "$d") Release v$VER da yo'q"
   [ "$(sha256sum < "$d" | cut -d' ' -f1)" = "$(tr -d '\r' < "$d.sha256" | cut -d' ' -f1)" ] || fail "$d sha256 mos emas"
-  gh attestation verify "$d" -R dtwinuz/bitg --signer-workflow dtwinuz/bitg/.github/workflows/release.yml \
+  gh attestation verify "$d" -R dtwinuz/bitg --signer-workflow "dtwinuz/bitg/.github/workflows/$SIGNER" \
     --source-ref "refs/tags/v$VER" --deny-self-hosted-runners >/dev/null \
-    || fail "$(basename "$d"): attestatsiya tekshiruvi o'tmadi (release.yml v$VER qurmagan)"
+    || fail "$(basename "$d"): attestatsiya tekshiruvi o'tmadi ($SIGNER v$VER qurmagan)"
 done
-echo "reliz fayllari tekshirildi: attestatsiya (release.yml, v$VER)"
+echo "reliz fayllari tekshirildi: attestatsiya ($SIGNER, v$VER)"
 
 SITE="$STAGE/out/site"
 # css/js uzoq keshlanadi: har deployda manzil yangilansin (?v=<sha8>)

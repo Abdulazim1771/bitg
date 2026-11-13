@@ -1,0 +1,205 @@
+# SPDX-FileCopyrightText: 2026 dtwinuz and bitg contributors
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: build
+
+# Reliz paketlarini yig'adi va ularga SLSA build provenance + SBOM attestation'ini yozadi. Faqat release.yml chaqiradi.
+#
+# SLSA Build L3: attestation'ni imzolagan workflow shu fayl (reusable workflow), uni chaqiruvchi workflow o'zgartira
+# olmaydi. Kompilyatsiya qiladigan job'larda (deb, pkg, msi) `id-token` yo'q: begona kod (build.rs, bog'liqliklar)
+# imzo uchun OIDC token ololmaydi. Attestation'ni hech narsa kompilyatsiya qilmaydigan alohida `attest` job yozadi.
+# Tekshirish:
+#   gh attestation verify <fayl> -R dtwinuz/bitg \
+#     --signer-workflow dtwinuz/bitg/.github/workflows/build.yml --source-ref refs/tags/v<versiya>
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Paket versiyasi (Cargo.toml bilan bir xil bo'lishi shart), masalan 0.3.2"
+        type: string
+        required: true
+    secrets:
+      BITG_SIGN_PFX:
+        required: false
+      BITG_SIGN_PFX_PASSWORD:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  deb:
+    # Linux paketlari: yig'ish + haqiqiy ibus-daemon bilan sinov
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Paketlar
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends libibus-1.0-dev ibus dbus python3-gi gir1.2-ibus-1.0 dpkg-dev \
+            libfcitx5core-dev libfcitx5utils-dev fcitx5-modules-dev pkg-config
+      - name: Versiya Cargo.toml bilan bir xilmi
+        run: |
+          cargo=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          [ "$VERSION" = "$cargo" ] || { echo "Versiya $VERSION, Cargo.toml $cargo"; exit 1; }
+      - run: linux/build-deb.sh
+      - name: Uchidan-uchiga (ibus-daemon)
+        env:
+          GSETTINGS_BACKEND: memory
+        run: |
+          sudo apt-get install -y -q ./target/deb/bitg_*.deb
+          dbus-run-session -- python3 -u linux/test/ibus_e2e.py
+      # Cargo.lock va boshqa manifestlardan: bitg qaysi kutubxonalarning qaysi versiyasidan yig'ilgani (SPDX)
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: .
+          format: spdx-json
+          output-file: target/deb/bitg-${{ inputs.version }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: deb
+          path: |
+            target/deb/*.deb
+            target/deb/*.deb.sha256
+            target/deb/*.spdx.json
+          if-no-files-found: error
+
+  pkg:
+    # macOS o'rnatuvchisi (universal): yig'ish + sinov
+    runs-on: macos-15
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Versiya Cargo.toml bilan bir xilmi
+        run: |
+          cargo=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          [ "$VERSION" = "$cargo" ] || { echo "Versiya $VERSION, Cargo.toml $cargo"; exit 1; }
+      - run: macos/build.sh
+      - run: target/macos/bitg-test
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pkg
+          path: target/macos/bitg-*-macos.pkg*
+          if-no-files-found: error
+
+  msi:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+          targets: i686-pc-windows-msvc
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Versiya Cargo.toml bilan bir xilmi
+        shell: pwsh
+        run: |
+          $cargo = (Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if ($env:VERSION -ne $cargo) { throw "Versiya $env:VERSION, Cargo.toml $cargo" }
+      - run: cargo test --workspace --locked
+      - name: MSI
+        shell: pwsh
+        run: ./installer/build.ps1 -Version $env:VERSION
+      # Imzo kaliti faqat shu qadamda: u kompilyatsiya qilmaydi (-SkipCargo), faqat tayyor binarlarni imzolab MSI'ni
+      # qayta yig'adi. Sertifikat sozlanmagan bo'lsa qadam hech narsa qilmaydi.
+      - name: Imzo
+        shell: pwsh
+        env:
+          BITG_SIGN_PFX: ${{ secrets.BITG_SIGN_PFX }}
+          BITG_SIGN_PFX_PASSWORD: ${{ secrets.BITG_SIGN_PFX_PASSWORD }}
+        run: if ($env:BITG_SIGN_PFX) { ./installer/build.ps1 -Version $env:VERSION -SkipCargo }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: msi
+          path: |
+            dist/bitg-${{ inputs.version }}-x64.msi
+            dist/bitg-${{ inputs.version }}-x64.msi.sha256
+          if-no-files-found: error
+
+  attest:
+    # Faqat shu job imzolaydi. U repo kodini ishga tushirmaydi va hech narsa kompilyatsiya qilmaydi: tayyor paketlarni
+    # yuklab oladi, sha256 ni tekshiradi va attestation yozadi.
+    needs: [deb, pkg, msi]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Fayllar to'liqmi va sha256 mosmi
+        working-directory: dist
+        run: |
+          ls -l
+          for f in "bitg-$VERSION-x64.msi" "bitg_${VERSION}_amd64.deb" "fcitx5-bitg_${VERSION}_amd64.deb" \
+                   "bitg-$VERSION-macos.pkg" "bitg-$VERSION.spdx.json"; do
+            [ -f "$f" ] || { echo "$f yo'q"; exit 1; }
+          done
+          for s in *.sha256; do
+            [ "$(sha256sum < "${s%.sha256}" | cut -d' ' -f1)" = "$(tr -d '\r' < "$s" | cut -d' ' -f1)" ] \
+              || { echo "$s mos emas"; exit 1; }
+          done
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        id: provenance
+        with:
+          subject-path: |
+            dist/*.msi
+            dist/*.deb
+            dist/*.pkg
+      - uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        id: sbom
+        with:
+          subject-path: |
+            dist/*.msi
+            dist/*.deb
+            dist/*.pkg
+          sbom-path: dist/bitg-${{ inputs.version }}.spdx.json
+      # Bundle'lar relizga qo'yiladi: internetsiz tekshirish (`gh attestation verify --bundle`) va OpenSSF Scorecard
+      # (Signed-Releases: *.intoto.jsonl, *.sigstore.json) uchun.
+      - name: Attestation fayllari
+        env:
+          PROVENANCE: ${{ steps.provenance.outputs.bundle-path }}
+          SBOM: ${{ steps.sbom.outputs.bundle-path }}
+        run: |
+          mkdir -p bundles
+          cp "$PROVENANCE" "bundles/bitg-$VERSION.intoto.jsonl"
+          cp "$SBOM" "bundles/bitg-$VERSION.sbom.sigstore.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: attestations
+          path: bundles/*
+          if-no-files-found: error

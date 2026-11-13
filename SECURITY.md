@@ -9,6 +9,10 @@ bitg kiritish usuli sifatida siz yozayotgan matnni ko'radi, shuning uchun xavfsi
 | 0.3.x | ✅ tuzatishlar chiqadi |
 | < 0.3 | ❌ yangilang |
 
+Xavfsizlik tuzatishlari faqat eng so'nggi minor versiyaga (hozir 0.3.x) chiqadi. Yangi minor versiya (masalan 0.4.0)
+chiqqan kuni oldingisi qo'llab-quvvatlanmaydigan bo'ladi: tuzatish uchun yangi versiyaga o'ting. 1.0 dan oldin
+eski versiyalarga alohida tuzatish (backport) chiqarilmaydi.
+
 ## Zaiflik haqida xabar berish
 
 Ommaviy issue **ochmang**. GitHub'ning yopiq kanalidan foydalaning:
@@ -48,6 +52,16 @@ gh attestation verify bitg-0.3.1-x64.msi -R dtwinuz/bitg
 ```
 
 Har relizda `bitg-<versiya>.spdx.json` ham bor: unda bitg ichidagi barcha kutubxonalar va ularning versiyalari.
+
+v0.3.2 dan boshlab paketlarni alohida reusable workflow (`build.yml`) yig'adi va imzolaydi (SLSA Build L3). Faylni
+aynan shu workflow, aynan shu teg uchun yig'ganini qat'iy tekshirish:
+
+```bash
+gh attestation verify bitg-0.3.2-x64.msi -R dtwinuz/bitg \
+  --signer-workflow dtwinuz/bitg/.github/workflows/build.yml --source-ref refs/tags/v0.3.2 --deny-self-hosted-runners
+```
+
+v0.3.1 uchun `--signer-workflow` qiymati `dtwinuz/bitg/.github/workflows/release.yml`.
 
 Internetsiz (GitHub API'siz) tekshirish uchun relizdagi bundle fayli:
 

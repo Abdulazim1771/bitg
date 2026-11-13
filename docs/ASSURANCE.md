@@ -88,7 +88,11 @@ compromised operating system.
   (`sensitive: email field untouched`).
 
 ### R5 — verifiable releases
-- Releases are built only by `.github/workflows/release.yml` from a `v*` tag.
+- Releases are built only from a `v*` tag: `.github/workflows/release.yml` calls the reusable
+  `.github/workflows/build.yml`, which builds the packages and signs the attestations (SLSA Build L3 from v0.3.2).
+  The jobs that compile code have no `id-token` permission; a separate `attest` job that runs no repository code
+  signs the provenance. `release.yml` publishes only after `gh attestation verify --signer-workflow build.yml
+  --source-ref <tag>` passes for every package.
 - From v0.3.1 each file has a SHA-256 file, SLSA build provenance and an SBOM attestation signed through Sigstore
   by GitHub Actions (`gh attestation verify <file> -R dtwinuz/bitg`); the bundles are attached to the release for
   offline verification. The apt repository is signed with a dedicated OpenPGP key (`deploy/apt/bitg.asc`).
@@ -164,7 +168,7 @@ path is added. Last review: 2026-11-13 (v0.3.x).
 |---|---|---|---|
 | F1 | medium | Windows fallback: unknown field type treated as non-sensitive | partly mitigated: sign-in, UAC and password-manager processes are off by default; per-word input-scope re-check still open (needs a Qt e2e case), G4 / #41 |
 | F2 | medium | release `msi` job compiled third-party code with the write token in `.git/config` and the signing secrets in the environment | fixed (`persist-credentials: false`, separate signing step) |
-| F3 | medium | `bitg.uz` mirror not tied to the attestation | fixed: `deploy/deploy.sh` takes the files from the GitHub Release and stops unless `gh attestation verify` (signer `release.yml`, tag ref, GitHub-hosted runner) passes (#42) |
+| F3 | medium | `bitg.uz` mirror not tied to the attestation | fixed: `deploy/deploy.sh` takes the files from the GitHub Release and stops unless `gh attestation verify` (signer `build.yml`, or `release.yml` for v0.3.1; tag ref; GitHub-hosted runner) passes (#42) |
 | F4 | low | `bitg file` / `exceptions.txt` write safety | fixed (#43); overwriting an existing output file is kept on purpose |
 | F5 | low | panics not caught at a few FFI/COM entry points | fixed (#44) |
 | F6 | low | fallback word buffer grew without limit | fixed (capped at 40) |

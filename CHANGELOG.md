@@ -4,6 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versiyalar: [S
 
 ## [Unreleased]
 
+### Xavfsizlik
+- **SLSA Build L3:** reliz paketlarini reusable `build.yml` yig'adi va imzolaydi. Kod kompilyatsiya qiladigan
+  job'larda imzo tokeni (`id-token`) yo'q, attestation'ni alohida `attest` job yozadi. `release.yml` relizni faqat
+  har paket uchun `gh attestation verify --signer-workflow build.yml --source-ref <teg>` o'tgandan keyin ochadi.
+  Qo'lda ishga tushirilsa (`workflow_dispatch`) reliz zanjiri relizsiz sinaladi. bitg.uz deploy'i yangi imzolovchini
+  talab qiladi (v0.3.1 uchun eskisi).
+- `SECURITY.md`: qo'llab-quvvatlash muddati aniq yozildi (faqat eng so'nggi minor versiya).
+
 ### Qo'shildi
 - **Chocolatey paketi** (`packaging/chocolatey`, `tools/release/packaging.py` yaratadi): `choco install bitg`. MSI GitHub
   Release'dan SHA-256 bilan olinadi; `/NoAutostart`, `/NoKeyboard` parametrlari. `packaging` workflow paketni haqiqiy

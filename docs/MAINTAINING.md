@@ -69,15 +69,20 @@ Reliz to'liq GitHub Actions'da yig'iladi, shaxsiy kompyuter kerak emas.
    ```
 3. `release` workflow'i o'zi bajaradi:
    - teg va `Cargo.toml` versiyasi bir xilligini tekshiradi;
-   - `.deb` (IBus va Fcitx5), macOS `.pkg` va Windows MSI ni yig'adi;
-   - SLSA provenance va SBOM attestation'ini yaratadi;
+   - `build.yml` orqali `.deb` (IBus va Fcitx5), macOS `.pkg` va Windows MSI ni yig'adi;
+   - SLSA provenance va SBOM attestation'ini yaratadi (imzolovchi `build.yml`, SLSA Build L3);
+   - attestation'ni `gh attestation verify --signer-workflow` bilan tekshiradi, o'tmasa reliz ochilmaydi;
    - GitHub Release'ni ochadi.
+
+   Reliz zanjirini teg qo'ymasdan sinash: Actions → release → Run workflow (versiya = `Cargo.toml` dagi). Hammasi
+   yig'iladi va tekshiriladi, lekin reliz ochilmaydi.
 
    Keyin `announce` workflow'i Telegram'ga e'lon yuboradi.
 4. Tekshirish:
    ```bash
    gh release download v0.3.2 -R dtwinuz/bitg -D dist
-   gh attestation verify dist/bitg-0.3.2-x64.msi -R dtwinuz/bitg
+   gh attestation verify dist/bitg-0.3.2-x64.msi -R dtwinuz/bitg \
+     --signer-workflow dtwinuz/bitg/.github/workflows/build.yml --source-ref refs/tags/v0.3.2
    ```
 
 Workflow yiqilsa, tegni o'chirmang: xatoni PR bilan tuzating va keyingi patch versiyani (`v0.3.3`) chiqaring.
