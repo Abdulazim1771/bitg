@@ -11,12 +11,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versiyalar: [S
   MSI: `/Brepro`, yo'l prefikslari, fayl vaqtlari commit vaqtida, ProductCode/PackageCode versiya va fayllardan
   (UUIDv5). `.pkg`: yo'l prefikslari (Rust, Swift `#file`), fayl vaqtlari, xar TOC vaqtlari
   (`tools/xar_normalize.py`). `macos` va `e2e` workflow'lari ikki marta yig'ib solishtiradi.
+- `CONTRIBUTING.md`: birinchi hissa uchun qadamma-qadam yo'riqnoma (fork, branch, `commit -s`, PR).
 - Xavfsizlik tekshiruvi 2026-11-13 (`docs/ASSURANCE.md` 8-bo'lim): 11 topilma, kritik va yuqori yo'q.
 
 ### Xavfsizlik
 - Reliz job'i: token `.git/config`da qolmaydi, imzo kaliti faqat kompilyatsiya qilmaydigan qadamda, teg nomi
   skriptga `env` orqali beriladi.
 - `input.dll` faqat System32 dan yuklanadi; zaxira yo'lda so'z buferi 40 belgidan oshmaydi.
+- C ABI (`bitg-core`) va TSF COM eksportlarida panik ushlanadi: ilova yopilib qolmaydi ([#44](https://github.com/dtwinuz/bitg/issues/44)).
+- `bitg file`: vaqtinchalik fayl oldindan bilib bo'lmaydigan nom bilan, faqat yangi fayl sifatida ochiladi, fayl
+  ruxsatlari saqlanadi; Linux/macOS'da `exceptions.txt` atomik va faqat egasi o'qiydigan (0600) yoziladi ([#43](https://github.com/dtwinuz/bitg/issues/43)).
+- bitg.uz deploy: reliz fayllari GitHub Release'dan olinadi va `gh attestation verify` (release.yml, teg) dan o'tmasa deploy to'xtaydi; SECURITY.md: MSI imzosiz, `.pkg` ad-hoc ([#42](https://github.com/dtwinuz/bitg/issues/42)).
+- Windows: standart istisnolar ro'yxatiga kirish/UAC oynalari va parol menejerlari (KeePass, KeePassXC, 1Password, Bitwarden, Enpass) qo'shildi ([#41](https://github.com/dtwinuz/bitg/issues/41), qisman).
+- Windows: sozlamalar va log papkasi `SHGetKnownFolderPath` dan olinadi, bitg yuklangan ilovaning muhitidagi `%APPDATA%` dan emas ([#45](https://github.com/dtwinuz/bitg/issues/45)).
+- IBus va Fcitx5: kursor oldidagi matn faqat kerak bo'lganda va oxirgi 128 belgi olinadi (macOS kabi) ([#46](https://github.com/dtwinuz/bitg/issues/46)).
+- CI: `cargo deny check advisories` (RustSec), Python paketlari xesh bilan qotirilgan ([#47](https://github.com/dtwinuz/bitg/issues/47)).
 
 ### Tuzatildi
 - **`bitg file`: zip-bomba himoyasi** ([#27](https://github.com/dtwinuz/bitg/issues/27)). O'giriladigan har XML
